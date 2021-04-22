@@ -1,5 +1,8 @@
 build
 .DS_store
+.settings/
+.project
+.cproject
 
 # Prerequisites
 *.d
