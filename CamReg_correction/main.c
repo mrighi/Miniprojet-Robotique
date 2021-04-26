@@ -12,16 +12,13 @@
 #include <camera/po8030.h>
 #include <chprintf.h>
 
+//UPDATE MAKEFILE!!!
+#include <climb.h>
+
 #include <pi_regulator.h>
 #include <process_image.h>
 
-void SendUint8ToComputer(uint8_t* data, uint16_t size) 
-{
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)"START", 5);
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)&size, sizeof(uint16_t));
-	chSequentialStreamWrite((BaseSequentialStream *)&SD3, (uint8_t*)data, size);
-}
-
+//Comes from TP4_correction source files
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -34,34 +31,48 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
-int main(void)
-{
+int main(){
+	//ChibiOS initialization
+	halInit();
+	chSysInit();
+	//mpu_init(); //Used in example project
 
-    halInit();
-    chSysInit();
-    mpu_init();
+	//Serial communication initialization
+	serial_start();
 
-    //starts the serial communication
-    serial_start();
-    //start the USB communication
-    usb_start();
-    //starts the camera
-    dcmi_start();
-	po8030_start();
-	//inits the motors
+	//Motors initialization
 	motors_init();
 
-	//stars the threads for the pi regulator and the processing of the image
-	pi_regulator_start();
-	process_image_start();
+	//IR sensors initialization
+	proximity_start();
 
-    /* Infinite loop. */
+	//I2C bus initialization
+	i2c_start(); //May or may not be necessary for IMU
+
+	//IMU initialization
+	imu_start();
+
+	//From TP4:
+	//timer11_start();
+	//i2c_start();
+	//imu_start();
+
+	//Inter Process Communication bus initialization
+	messagebus_init(&bus, &bus_lock, &bus_condvar);
+
+	//Start all threads here
+	//Start the SetPath thread
+	set_path_start();
+
+    //Infinite loop
     while (1) {
-    	//waits 1 second
-        chThdSleepMilliseconds(1000);
+
     }
+
+	return 0;
 }
 
+//Comes from TP4_correction source files
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 
