@@ -16,10 +16,17 @@
 #include <motors.h>
 #include <climb.h>
 
-int16_t imu_angle() //Very uncertain about the variable type
+int16_t imu_angle(){ //Very uncertain about the variable type
+
+}
 
 int16_t prox_angle(){
+	if(get_acc_filtered(Z_AXIS)-offset_z >= 1 - PLATEAU_DETECTION_THRESHOLD){
+		return 0;  //Maybe blink a led or smth ?
+	}
+	else{
 
+	}
 }
 
 static THD_WORKING_AREA(waSetPath, 256); //Should not need much memory (no tables)
@@ -49,13 +56,7 @@ static THD_FUNCTION(SetPath, arg) {
     while(1){
     	time = chVTGetSystemTime();
 
-    	if(get_acc_filtered(Z_AXIS)-offset_z >= 1 - PLATEAU_DETECTION_THRESHOLD){ //Maybe blink a led or smth ??
-    		left_motor_set_speed(0);
-    		right_motor_set_speed(0);
-    	}
-    	else{
-
-    	}
+    	//Speed is a weighted average of prox and ir values
 
     	chThdSleepUntilWindowed(time, time + MS2ST(10)); //100 Hz
     }
