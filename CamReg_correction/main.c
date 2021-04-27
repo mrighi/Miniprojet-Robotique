@@ -9,14 +9,19 @@
 #include <usbcfg.h>
 #include <main.h>
 #include <motors.h>
+#include <sensors/proximity.h>
+#include <sensors/imu.h>
 #include <camera/po8030.h>
 #include <chprintf.h>
 
-//UPDATE MAKEFILE!!!
 #include <climb.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
+
+messagebus_t bus;
+MUTEX_DECL(bus_lock);
+CONDVAR_DECL(bus_condvar);
 
 //Comes from TP4_correction
 static void serial_start(void)
@@ -31,7 +36,7 @@ static void serial_start(void)
 	sdStart(&SD3, &ser_cfg); // UART3.
 }
 
-int main(){
+int main(void){
 	//ChibiOS initialization
 	halInit();
 	chSysInit();
@@ -47,7 +52,7 @@ int main(){
 	proximity_start();
 
 	//I2C bus initialization
-	i2c_start(); //May or may not be necessary for IMU
+	//i2cStart(); //May or may not be necessary for IMU
 
 	//IMU initialization
 	imu_start();

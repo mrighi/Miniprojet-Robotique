@@ -3,49 +3,75 @@
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
+#include <i2c_bus.h>
 
 #include <main.h> //COPIED FROM TP5 ; I HAVE MY DOUBTS
 #include <motors.h>
+#include <sensors/imu.h>
+#include <sensors/proximity.h>
 #include <climb.h>
 
-//I assumed the robot moves along its own y axis
-//In fact y axis points backwards
+//I feel like it would be smarter to use a global or static variable
+//That way this function runs only once and not continually
+bool top_reached(int16_t offset_z){
+	if(get_acceleration(Z_AXIS)-offset_z >= 1 - IMU_THRESHOLD){
+		return 1; //Top has been reached
+	}
+	return 0; //Top has not been reached
+}
 
-double imu_angle(){ //That we have doubles is most certainly not good
-	if(get_acc_filtered(Z_AXIS, IMU_SAMPLE_SIZE)-offset_z >= 1 - IMU_THRESHOLD){
-		return 0;  //Stop the motors Maybe blink a led or smth ?
+//Using double because idk how to get arctan in float SHOULD BE CHANGED !!!
+//Using degrees to be able to use ints
+//Angles in trigonometric direction
+double imu_bearing(int16_t offset_x, int16_t offset_y){
+	if(get_acceleration(Y_AXIS)-offset_y <= IMU_THRESHOLD && get_acceleration(X_AXIS)-offset_x > 0){
+		return 90 ;
 	}
-	else if(get_acc_filtered(Y_AXIS, IMU_SAMPLE_SIZE)-offset_y <= IMU_THREASHOLD && get_acc_filtered(X_AXIS, IMU_SAMPLE_SIZE)-offset_x > 0){ //arctan gives pi/2 case
-		return 1.57 ; //pi/2
+	else if(get_acceleration(Y_AXIS)-offset_y <= IMU_THRESHOLD && get_acceleration(X_AXIS)-offset_x < 0){
+		return -90 ;
 	}
-	else if(get_acc_filtered(Y_AXIS, IMU_SAMPLE_SIZE)-offset_y <= IMU_THRESHOLD && get_acc_filtered(X_AXIS, IMU_SAMPLE_SIZE)-offset_x < 0){
-		return -1.57 ; //-pi/2
+	return atan((get_acceleration(X_AXIS)-offset_x)/(get_acceleration(Y_AXIS)-offset_y));
+}
+
+//Using double to match imu_bearing
+//THIS IS A SIMPLIFIED VERSION FOR TESTING
+double prox_bearing(void){
+	/*bool coll__front_left = get_calibrated_prox(PROX_FRONT_LEFT);
+	bool coll_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
+	bool coll_front_right = get_calibrated_prox(PROX_FRONT_RIGHT);
+	bool coll_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
+	bool coll_right = get_calibrated_prox(PROX_RIGHT);
+	bool coll_left = get_calibrated_prox(PROX_LEFT);*/
+
+	if(get_calibrated_prox(PROX_FRONT_LEFT) <= PROX_THRESHOLD){
+		return -30 ;
+	}
+	if(get_calibrated_prox(PROX_FRONT_LEFT) <= PROX_THRESHOLD){
+		return 30 ;
+	}
+	return 0;
+
+	//Variant: use a static variable
+	//Should prevent flip-flopping, but slower redressement
+	/*
+	static double bearing = 0;
+	if(get_calibrated_prox(PROX_FRONT_LEFT) <= PROX_THRESHOLD and get_calibrated_prox(PROX_FRONT_LEFT) <= PROX_THRESHOLD){
+		bearing += 90 //plus by convention
+		return bearing ;
+	}
+	else if(get_calibrated_prox(PROX_FRONT_LEFT) <= PROX_THRESHOLD){
+		bearing -= 30 ;
+		return bearing ;
+	}
+	else if(get_calibrated_prox(PROX_FRONT_LEFT) <= PROX_THRESHOLD){
+		bearing += 30;
+		return bearing ;
 	}
 	else{
-		return atan((get_acc_filtered(X_AXIS, IMU_SAMPLE_SIZE)-offset_x)/(get_acc_filtered(Y_AXIS, IMU_SAMPLE_SIZE)-offset_y));
-	}
+		bearing -= (fabs(bearing)/bearing) * 5 ;
+		return bearing;
+	}*/
 }
-
-int16_t prox_angle(){ //Very uncertain about the variable type
-	//Left in the code just in case but this should be useless
-	weight_left=1;
-	weight_left=1;
-	if(get_calibrated_prox(FRONT_RIGHT)<PROX_THRESHOLD){
-		weight_left+=5 ;
-	}
-	else if(get_calibrated_prox(FRONT_LEFT)<PROX_THRESHOLD){
-		weight_right+=5 ;
-	}
-	if(get_calibrated_prox(FRONT__DIAG_RIGHT)<PROX_THRESHOLD){ //not elseif because if the obstacle stretches further, turn more
-		weight_left+=3 ;
-	}
-	else if(get_calibrated_prox(FRONT__DIAG_LEFT)<PROX_THRESHOLD){
-		weight_right+=3 ;
-	}
-	return ??? //I forgot the syntax for this
-}
-//should give n different cases, depending on which sensors are tripped, and corresponding
-//predetermined angles for each case
 
 static THD_WORKING_AREA(waSetPath, 256); //Should not need much memory (no tables)
 
@@ -71,12 +97,19 @@ static THD_FUNCTION(SetPath, arg) {
     //right_motor_set_speed();
 
     systime_t time;
+    int angle_res;
     while(1){
     	time = chVTGetSystemTime();
 
-    	//Speed is a weighted average of prox and ir values
-    	//Penalty optmisation problem
-    	//angle_res=COEFF_IMU * imu_angle() + COEFF_PROX*prox_angle();
+    	if(top_reached(offset_z)){
+    		left_motor_set_speed(0);
+    		right_motor_set_speed(0);
+    	}
+    	else{ //VERY VERY BAD JUST FOR TESTING
+    		angle_res=COEFF_IMU * imu_bearing(offset_x, offset_y) + COEFF_PROX*prox_bearing(); //Penalty optmisation problem
+    		left_motor_set_speed(SPEED+angle_res);
+    		right_motor_set_speed(SPEED-angle_res);
+    	}
 
     	chThdSleepUntilWindowed(time, time + MS2ST(10)); //100 Hz
     }
