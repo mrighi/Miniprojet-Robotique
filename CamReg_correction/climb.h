@@ -13,11 +13,19 @@
 #define Z_AXIS						2
 
 #define IMU_SAMPLE_SIZE				50 		//The base functions also use 50 idk
-#define PLATEAU_DETECTION_THRESHOLD	0.01	//Determined empirically
+#define IMU_THRESHOLD				0.01	//Determined empirically
 
 #define PROX_THRESHOLD				1000 	//Determined empirically
 
-//Start the SetPath thread
+#define COEFF_IMU					0.6		//Determined empirically
+#define COEFF_PROX					0.4		//Determined empirically
+
+/*Thread to:
+ *	- Read IMU values
+ *	- Read prox values
+ *	- Calculate a path
+ *	- Set the motors to that path
+ */
 void set_path_start(void);
 
 #endif /* CLIMB_H */

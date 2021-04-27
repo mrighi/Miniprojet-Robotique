@@ -18,7 +18,7 @@
 #include <pi_regulator.h>
 #include <process_image.h>
 
-//Comes from TP4_correction source files
+//Comes from TP4_correction
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -54,8 +54,6 @@ int main(){
 
 	//From TP4:
 	//timer11_start();
-	//i2c_start();
-	//imu_start();
 
 	//Inter Process Communication bus initialization
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
@@ -66,13 +64,13 @@ int main(){
 
     //Infinite loop
     while (1) {
-
+    	//put in ChThreadSleep
     }
 
 	return 0;
 }
 
-//Comes from TP4_correction source files
+//Comes from TP4_correction
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 
