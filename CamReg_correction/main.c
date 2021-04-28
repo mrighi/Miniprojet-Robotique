@@ -12,6 +12,7 @@
 #include <sensors/proximity.h>
 #include <sensors/imu.h>
 #include <camera/po8030.h>
+#include <i2c_bus.h>
 #include <chprintf.h>
 
 #include <climb.h>
@@ -40,10 +41,11 @@ int main(void){
 	//ChibiOS initialization
 	halInit();
 	chSysInit();
-	//mpu_init(); //Used in example project
+	mpu_init(); //Used in example project
 
 	//Serial communication initialization
 	serial_start();
+	usb_start(); //is this necessary ?
 
 	//Motors initialization
 	motors_init();
@@ -51,17 +53,17 @@ int main(void){
 	//IR sensors initialization
 	proximity_start();
 
-	//I2C bus initialization
-	//i2cStart(); //May or may not be necessary for IMU
-
-	//IMU initialization
-	imu_start();
-
 	//From TP4:
 	//timer11_start();
 
 	//Inter Process Communication bus initialization
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
+
+	//I2C bus initialization
+	i2c_start(); //May or may not be necessary for IMU
+
+	//IMU initialization
+	imu_start();
 
 	//Start all threads here
 	//Start the SetPath thread

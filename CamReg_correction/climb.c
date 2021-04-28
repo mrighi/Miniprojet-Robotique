@@ -11,6 +11,8 @@
 #include <sensors/proximity.h>
 #include <climb.h>
 
+static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
+
 //I feel like it would be smarter to use a global or static variable
 //That way this function runs only once and not continually
 bool top_reached(int16_t offset_z){
