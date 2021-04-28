@@ -12,10 +12,12 @@
 #define Y_AXIS						1
 #define Z_AXIS						2
 
+#define g							9.81
+
 #define SPEED						300 	//Goes up to 1100
 
 //#define IMU_SAMPLE_SIZE				50 		//The base functions use 50
-#define IMU_THRESHOLD				0.01	//Determined empirically
+#define IMU_EPSILON					0.01	//Determined empirically
 
 #define PROX_THRESHOLD				1000 	//Determined empirically
 
@@ -23,9 +25,8 @@
 #define COEFF_PROX					0.4		//Determined empirically
 
 
-bool top_reached(int16_t offset_z);
-double imu_bearing(int16_t offset_x, int16_t offset_y);
-double prox_bearing(void);
+float imu_bearing(int16_t acc_x_calibrated, int16_t acc_y_calibrated);
+float prox_bearing(void);
 
 /*Thread to:
  *	- Read IMU values
