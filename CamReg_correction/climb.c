@@ -297,7 +297,8 @@ static THD_FUNCTION(SetPath, arg) {
         	if(coll_front_left || coll_front_left){ //Head-on collision remains
         		//In this case, usually keep turning
         		//Unless robot falls 90° below optimal axis
-        		if(acc_y_calibrated <=  IMU_EPSILON*2/IMU_RESOLUTION){ //Robot is 90° below optimal angle
+        		if(acc_y_calibrated <=  -IMU_EPSILON*2/IMU_RESOLUTION){ //Robot is 90° below optimal angle
+        			//Rmk: minus because that way the robot is free to move perpendicular to an obstacle
         			if(acc_x_calibrated < 0){ //turning in right direction
         				turn_left();
         			}
