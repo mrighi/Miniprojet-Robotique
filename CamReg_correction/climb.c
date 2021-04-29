@@ -184,10 +184,12 @@ static THD_FUNCTION(SetPath, arg) {
 //In case of obstacle, it turns until there is no obstacle straight ahead,
         //then goes straight until the diagonal sensors are clear
         //then goes back to normal function
+//Rotation is only updated once prox sensors are cleared
 
 //Particular cases:
         //If both sensors blocked, follows imu angle direction
-        //
+        //If both sensors blocked and imu direction is zero then alternates either left or right
+//This last case is important ; think L-shaped box hit head-on
 
 //Giant if-else of all possible cases
 //Has some overlaps in motor settings but not in flag settings
@@ -203,18 +205,18 @@ static THD_FUNCTION(SetPath, arg) {
         	if(!coll_front_left && !coll_front_right){ //No current collisions
         		angle_motor_treatment(imu_angle);
         	}
-        	else if(coll_front_left){
+        	else if(coll_front_left){ //Collision left
         		avoiding_coll_left = 1;
         		turn_right();
         	}
-        	else if(coll_front_right){
+        	else if(coll_front_right){ //collision right
         	    avoiding_coll_right = 1;
         	    turn_left();
         	}
-        	else if(coll_front_left && coll_front_right){
+        	else if(coll_front_left && coll_front_right){ //Head-on collision
         		avoiding_coll_right = 1;
         		avoiding_coll_left = 1;
-        		if(imu_angle != 0){ //Probably not super elegant
+        		if(imu_angle != 0){
         			angle_motor_treatment(imu_angle);
         		}
         		else{ //treats the case where it hit an obstacle aligned with optimal climb angle
@@ -232,12 +234,12 @@ static THD_FUNCTION(SetPath, arg) {
 
         //Case avoiding collision on left
         else if(avoiding_coll_left){
-        	if(coll_front_left){ //Pretty sure this is redundant
-        		turn_right();
-        	}
-        	else if(coll_front_right){
+        	//if(coll_front_left){ //Pretty sure this is redundant
+        		//turn_right();
+        	//}
+        	if(coll_front_right){ //Becomes a head-on collision
         		avoiding_coll_right = 1;
-        		 if(imu_angle != 0){ //Probably not super elegant
+        		 if(imu_angle != 0){
         			 angle_motor_treatment(imu_angle);
         		 }
         		 else{ //treats the case where it hit an obstacle aligned with optimal climb angle
@@ -251,10 +253,10 @@ static THD_FUNCTION(SetPath, arg) {
         		     }
         		 }
         	}
-        	else if(coll_diag_left){
+        	else if(coll_diag_left){ //Diag sensor still get obstacle but front doesn't
         		go_straight();
         	}
-        	else{
+        	else{ //Clears the obstacle
         		avoiding_coll_left = 0;
         		angle_motor_treatment(imu_angle);
         	}
@@ -262,9 +264,9 @@ static THD_FUNCTION(SetPath, arg) {
 
         //Case avoiding collision on right
         else if(avoiding_coll_right){
-        	if(coll_front_left){
+        	if(coll_front_left){ //Becomes a head-on collision
         		coll_front_left = 1;
-        		if(imu_angle != 0){ //Probably not super elegant
+        		if(imu_angle != 0){
         			angle_motor_treatment(imu_angle);
         		}
         		else{ //treats the case where it hit an obstacle aligned with optimal climb angle
@@ -278,13 +280,13 @@ static THD_FUNCTION(SetPath, arg) {
         		    }
         		}
         	}
-        	else if(coll_front_right){
-        		turn_left(); //Probably redundant
-        	}
-        	else if(coll_diag_right){
+        	//else if(coll_front_right){
+        	//	turn_left(); //Probably redundant
+        	//}
+        	else if(coll_diag_right){ //Diag sensor still get obstacle but front doesn't
         		go_straight();
         	}
-        	else{
+        	else{ //Clears the obstacle
         		avoiding_coll_right = 0;
         		angle_motor_treatment(imu_angle);
         	}
@@ -292,25 +294,25 @@ static THD_FUNCTION(SetPath, arg) {
 
         //Case avoiding head-on collision
         else{
-        	if(coll_front_left || coll_front_left){
-        		//SET UP COUNTER TO OPTIMIZE MOVEMENT, ie
-        		//PREVENT IT FROM SPINNING PAST OPTIMAL PITCH ANGLE
-
-        		//Keep turning
-        		//This block is here so I don't forget this case and in case you actually need to keep updating the motors
-        	}
-        	else if(imu_angle_prev >0 && coll_diag_right){
-        		go_straight();
-        	}
-        	else if(imu_angle_prev < 0 && coll_diag_left){
-        	    go_straight();
-        	}
-        	else if(imu_angle_prev == 0){
-        		if((stuck_toggle == 0 && coll_diag_right) || (stuck_toggle == 1 && coll_diag_left)){ //A diag sensor sees an opening
-        			go_straight();
+        	if(coll_front_left || coll_front_left){ //Head-on collision remains
+        		//In this case, usually keep turning
+        		//Unless robot falls 90° below optimal axis
+        		if(acc_y_calibrated <=  IMU_EPSILON*2/IMU_RESOLUTION){ //Robot is 90° below optimal angle
+        			if(acc_x_calibrated < 0){ //turning in right direction
+        				turn_left();
+        			}
+        			else{
+        				turn_right();
+        			}
         		}
         	}
-        	else{
+        	else if(acc_x_calibrated >= 0 && coll_diag_right){ //Diag sensor still get obstacle but front doesn't
+        		go_straight();
+        	}
+        	else if(imu_angle_prev <= 0 && coll_diag_left){ //Diag sensor still get obstacle but front doesn't
+        	    go_straight();
+        	}
+        	else{ //Clears the obstacle
         		avoiding_coll_left = 0;
         		avoiding_coll_right = 0;
         		angle_motor_treatment(imu_angle);
