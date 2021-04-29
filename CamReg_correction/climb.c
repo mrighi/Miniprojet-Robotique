@@ -5,6 +5,9 @@
 //Remove if cases where the motor doesn't need to be updated
 //In this form, it's redundant to use atan because we only turn left or right
 
+//POSSIBLE CORRECTIONS
+//Swap the diag it sensors for the side sensors
+
 #include "ch.h"
 #include "hal.h"
 #include <math.h>
