@@ -56,10 +56,10 @@ float prox_bearing(void){
 	chprintf((BaseSequentialStream *)&SD3, "Prox_L = %i \r\n", prox_left);
 	chprintf((BaseSequentialStream *)&SD3, "Prox_R = %i \r\n", prox_right);
 
-	if(prox_left <= PROX_THRESHOLD){
+	if(prox_left >= PROX_THRESHOLD){
 		return -30 ; //In trigonometric direction, corresponds to turning clockwise
 	}
-	if(prox_right <= PROX_THRESHOLD){
+	if(prox_right >= PROX_THRESHOLD){
 		return 30 ;
 	}
 	return 0;
@@ -121,9 +121,9 @@ static THD_FUNCTION(SetPath, arg) {
 
     	//It's redundant to assign memory space unless these are called more than once
     	//Done here so it can be printed
-    	acc_x=get_acceleration(X_AXIS)-offset_x;
-    	acc_y=get_acceleration(Y_AXIS)-offset_y;
-    	acc_z=get_acceleration(Z_AXIS)-offset_z;
+    	acc_x=(get_acceleration(X_AXIS)-offset_x)*(2*g/IMU_RESOLUTION);
+    	acc_y=(get_acceleration(Y_AXIS)-offset_y)*(2*g/IMU_RESOLUTION);
+    	acc_z=(get_acceleration(Z_AXIS)-offset_z)*(2*g/IMU_RESOLUTION);
 
     	//Print the offsets:
     	 chprintf((BaseSequentialStream *)&SD3, "Offset_X = %i \r\n", offset_x);
@@ -135,13 +135,13 @@ static THD_FUNCTION(SetPath, arg) {
     	 chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %i \r\n", acc_y);
     	 chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %i \r\n", acc_z);
 
-    	if(acc_z >= (1 - IMU_EPSILON)*g){ //Top reached
+    	/*if(acc_z <= -(1 - IMU_EPSILON)*g){ //Top reached //Minus because z axis points up
     		left_motor_set_speed(0);
     		right_motor_set_speed(0);
     		//MAY WELL BE A SOURCE OF ERRORS
     		chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
-    	}
-    	else{ //VERY VERY BAD JUST FOR TESTING
+    	}*/
+    	//else{ //VERY VERY BAD JUST FOR TESTING
     		angle_imu = imu_bearing(acc_x, acc_y);
     		angle_prox = prox_bearing();
     		angle_res=COEFF_IMU * imu_bearing(acc_x, acc_y) + COEFF_PROX*prox_bearing(); //Penalty optmisation problem
@@ -153,7 +153,7 @@ static THD_FUNCTION(SetPath, arg) {
 
     		left_motor_set_speed(SPEED+angle_res);
     		right_motor_set_speed(SPEED-angle_res);
-    	}
+    	//}
 
     	chThdSleepUntilWindowed(time, time + MS2ST(10)); //100 Hz
     }

@@ -19,7 +19,10 @@
 //#define IMU_SAMPLE_SIZE				50 		//The base functions use 50
 #define IMU_EPSILON					0.01	//Determined empirically
 
-#define PROX_THRESHOLD				1000 	//Determined empirically
+#define IMU_RESOLUTION				32000
+#define IMU_MAX						2*g
+
+#define PROX_THRESHOLD				100 	//Determined empirically //
 
 #define COEFF_IMU					0.6		//Determined empirically
 #define COEFF_PROX					0.4		//Determined empirically
