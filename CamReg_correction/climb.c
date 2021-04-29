@@ -144,15 +144,15 @@ static THD_FUNCTION(SetPath, arg) {
     	//else{ //VERY VERY BAD JUST FOR TESTING
     		angle_imu = imu_bearing(acc_x, acc_y);
     		angle_prox = prox_bearing();
-    		angle_res=COEFF_IMU * imu_bearing(acc_x, acc_y) + COEFF_PROX*prox_bearing(); //Penalty optmisation problem
+    		angle_res=COEFF_IMU * imu_bearing(acc_x, acc_y) + COEFF_PROX*prox_bearing(); //Penalty optmization problem
 
     		//Print angles values
     		chprintf((BaseSequentialStream *)&SD3, "Angle_IMU = %.2f \r\n", angle_imu);
     		chprintf((BaseSequentialStream *)&SD3, "Angle_PROX = %.2f \r\n", angle_prox);
     		chprintf((BaseSequentialStream *)&SD3, "Angle_RES = %.2f \r\n", angle_res);
 
-    		left_motor_set_speed(SPEED+angle_res);
-    		right_motor_set_speed(SPEED-angle_res);
+    		left_motor_set_speed(SPEED-angle_res);
+    		right_motor_set_speed(SPEED+angle_res);
     	//}
 
     	chThdSleepUntilWindowed(time, time + MS2ST(10)); //100 Hz
