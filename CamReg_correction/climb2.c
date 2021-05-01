@@ -58,7 +58,7 @@ void move(float bearing){
 	speed_left = speed_left + SPEED_INC_COEFF*bearing ; //This is where we play with coefficients or functions
 	speed_right = speed_right - SPEED_INC_COEFF*bearing ;
 	left_motor_set_speed(SPEED_MAX*speed_left);
-	right_motor_set_speed(-SPEED_MAX*speed_right);
+	right_motor_set_speed(SPEED_MAX*speed_right);
 }
 
 static THD_WORKING_AREA(waSetPath, 256);
