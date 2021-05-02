@@ -31,6 +31,7 @@
 #define IMU_RESOLUTION				32000
 #define IMU_MAX						2*g
 
+#define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000
 #define PROX_THRESHOLD	60 	//Determined empirically
 

@@ -1,6 +1,7 @@
 //MUST CORRECT:
 //MAX_SPEED is already in motors.h
 //Use filtered accelerometer values
+//Change bearing to int8_t and on -100 to 100
 
 #include "ch.h"
 #include "hal.h"
@@ -29,16 +30,23 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 		return -1 ;
 	}
 	if(fabs(acc_x) <= IMU_EPSILON*2/IMU_RESOLUTION){
-		return 0;
+			return 0;
+		}
+	if((acc_x>0 && acc_y >0) || (acc_x<0 && acc_y <0) ){ //Use zeros because epsilon cases are already verified
+		return 1;
 	}
-
-	return fabs(acc_x/acc_y)/(acc_x/acc_y); //Probably a simpler way to write it
+	if((acc_x<0 && acc_y >0) || (acc_x<0 && acc_y >0) ){
+		return -1;
+	}
 }
 
 float prox_bearing(int prox_front_left, int prox_front_right){
 	static bool direction_toggle = 0;
+	//It's not elegant but if both sensors are blocked the robot veers sharply in an arbitrary direction
+	//Add a case to check both sensors are tripped equally
 	if(prox_front_left >= PROX_THRESHOLD && prox_front_right >= PROX_THRESHOLD){
-		++direction_toggle; //Only gets toggled once because the robot turns in one cycle
+		//We assume at least one sensor is cleared after one cycle
+		++direction_toggle;
 		return 1-2*direction_toggle; //Return +1 or -1
 	}
 	if(prox_front_left >= PROX_THRESHOLD){
@@ -52,10 +60,11 @@ float prox_bearing(int prox_front_left, int prox_front_right){
 
 //Control in speed, not position, to limit accelerations
 //Smoother speeds profile = optimized climb
+//SPEED_INC_COEFF controls the transient of the speed : 1 = no transient, ->0 = long transient
 void move(float bearing){
 	static float speed_left = 1;
 	static float speed_right = 1;
-	speed_left = speed_left + SPEED_INC_COEFF*bearing ; //This is where we play with coefficients or functions
+	speed_left = speed_left + SPEED_INC_COEFF*bearing ;
 	speed_right = speed_right - SPEED_INC_COEFF*bearing ;
 	left_motor_set_speed(SPEED_MAX*speed_left);
 	right_motor_set_speed(SPEED_MAX*speed_right);
@@ -78,7 +87,7 @@ static THD_FUNCTION(SetPath, arg) {
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    }while((offset_x >= 500) || (offset_y >= 500) || (offset_z >= 500));
+    }while((offset_x >= PROX_OFFSET_MAX) || (offset_y >= PROX_OFFSET_MAX) || (offset_z >= PROX_OFFSET_MAX));
 
     systime_t time;
 
