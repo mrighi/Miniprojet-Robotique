@@ -32,7 +32,7 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(fabs(acc_x) <= IMU_EPSILON*2/IMU_RESOLUTION){
 			return 0;
 		}
-	if((acc_x>0 && acc_y >0) || (acc_x<0 && acc_y <0) ){ //Use zeros because epsilon cases are already verified
+	if((acc_x>0 && acc_y >0) || (acc_x<0 && acc_y <0) ){ //Use zeros because epsilon cases are already checked
 		return 1;
 	}
 	if((acc_x<0 && acc_y >0) || (acc_x<0 && acc_y >0) ){
@@ -40,14 +40,22 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 	}
 }
 
-float prox_bearing(int prox_front_left, int prox_front_right){
-	static bool direction_toggle = 0;
-	//It's not elegant but if both sensors are blocked the robot veers sharply in an arbitrary direction
-	//Add a case to check both sensors are tripped equally
+float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
+	static bool direction_toggle = 0; //Arbitrary direction if all sensors are blocked
 	if(prox_front_left >= PROX_THRESHOLD && prox_front_right >= PROX_THRESHOLD){
-		//We assume at least one sensor is cleared after one cycle
-		++direction_toggle;
-		return 1-2*direction_toggle; //Return +1 or -1
+		if(prox_diag_left >= PROX_THRESHOLD && prox_diag_right <= PROX_THRESHOLD){
+			//In this case the robot makes a sharp turn in an arbitrary direction
+			//SHARP turn : returns +-1 as opposed to <1
+			//Direction is toggled every cycle, to prevent back-and-forth loops and improve efficiency
+			++direction_toggle; //Assume spg at least one sensor is cleared after one cycle
+			return 1-2*direction_toggle; //+1 or -1
+		}
+		if(prox_diag_left >= PROX_THRESHOLD){
+			return -prox_diag_left/(2*PROX_MAX); //Smaller angle correction for 45° sensors
+		}
+		if(prox_diag_right >= PROX_THRESHOLD){
+			return prox_diag_right/(2*PROX_MAX);
+		}
 	}
 	if(prox_front_left >= PROX_THRESHOLD){
 		return -prox_front_left/PROX_MAX;
@@ -97,6 +105,8 @@ static THD_FUNCTION(SetPath, arg) {
 
     int prox_front_left;
     int prox_front_right;
+    int prox_diag_left;
+    int prox_diag_right;
 
     float bearing ;
 
@@ -126,16 +136,16 @@ static THD_FUNCTION(SetPath, arg) {
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
     	prox_front_right = get_calibrated_prox(PROX_FRONT_RIGHT);
-    	//prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
-    	//prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
+    	prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
+    	prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
     	//prox_left = get_calibrated_prox(PROX_LEFT);
         //prox_right = get_calibrated_prox(PROX_RIGHT);
 
         //Print proximity values
         chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d \r\n", prox_front_left);
         chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d \r\n", prox_front_right);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d \r\n", prox_diag_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d \r\n", prox_diag_right);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d \r\n", prox_diag_left);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d \r\n", prox_diag_right);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d \r\n", prox_right);
 
@@ -147,7 +157,7 @@ static THD_FUNCTION(SetPath, arg) {
         	 chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
          }
          else{
-        	 bearing = COEFF_PROX*imu_bearing(acc_x_calibrated, acc_y_calibrated) + COEFF_IMU*prox_bearing(prox_front_left, prox_front_right);
+        	 bearing = COEFF_PROX*imu_bearing(acc_x_calibrated, acc_y_calibrated) + COEFF_IMU*prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
         	 chprintf((BaseSequentialStream *)&SD3, "Bearing = %.4f", bearing);
         	 move(bearing);
          }
