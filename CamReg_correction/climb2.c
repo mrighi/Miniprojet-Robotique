@@ -1,5 +1,6 @@
 //MUST CORRECT:
 //Change bearing to int8_t and on -100 to 100
+//Put back the arctan in the imu bearing
 
 #include "ch.h"
 #include "hal.h"
@@ -27,15 +28,7 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(acc_y <= IMU_EPSILON*2/IMU_RESOLUTION && acc_x < 0){
 		return -1 ;
 	}
-	if(fabs(acc_x) <= IMU_EPSILON*2/IMU_RESOLUTION){
-			return 0;
-		}
-	if((acc_x>0 && acc_y >0) || (acc_x<0 && acc_y <0) ){ //Use zeros because epsilon cases are already checked
-		return 1;
-	}
-	if((acc_x<0 && acc_y >0) || (acc_x<0 && acc_y >0) ){
-		return -1;
-	}
+	return atan2(acc_x, acc_y)*0.637f; //0.637 = 2/pi
 }
 
 float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
@@ -92,8 +85,8 @@ void move(float bearing){
 		speed_right -= SPEED_INC_COEFF*bearing ;
 	}
 
-	left_motor_set_speed(MOTOR_SPEED_LIMIT*speed_left);
-	right_motor_set_speed(MOTOR_SPEED_LIMIT*speed_right);
+	left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_left);
+	right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_right);
 }
 
 static THD_WORKING_AREA(waSetPath, 256);
@@ -126,6 +119,8 @@ static THD_FUNCTION(SetPath, arg) {
     int prox_diag_left;
     int prox_diag_right;
 
+    float bearing_prox;
+    float bearing_imu;
     float bearing ;
 
     while(1){
@@ -138,9 +133,9 @@ static THD_FUNCTION(SetPath, arg) {
 
     	//Collect acceleration values
     	//Using filtered to avoid outliers, shouldn't affect speed significantly
-    	acc_x_calibrated=(get_acc_filtered(X_AXIS, IMU_SAMPLE_SIZE)-offset_x);
-    	acc_y_calibrated=(get_acc_filtered(Y_AXIS, IMU_SAMPLE_SIZE)-offset_y);
-    	acc_z_calibrated=(get_acc_filtered(Z_AXIS, IMU_SAMPLE_SIZE)-offset_z);
+    	acc_x_calibrated=(get_acceleration(X_AXIS)-offset_x);
+    	acc_y_calibrated=(get_acceleration(Y_AXIS)-offset_y);
+    	acc_z_calibrated=(get_acceleration(Z_AXIS)-offset_z);
 
     	//Print the offsets:
     	chprintf((BaseSequentialStream *)&SD3, "Offset_X = %d \r\n", offset_x);
@@ -170,14 +165,19 @@ static THD_FUNCTION(SetPath, arg) {
 
 //Set motor speeds accordingly
         //Case top reached
-         if(acc_z_calibrated <= -(1 - IMU_EPSILON)*2/IMU_RESOLUTION){ //Minus because z axis points up // 2/res corresponds to g
+        //Fix the condition to have a more acceptable threshold
+         if(fabs(acc_z_calibrated) <= IMU_EPSILON){ //Minus because z axis points up
         	 left_motor_set_speed(0);
         	 right_motor_set_speed(0);
         	 chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
          }
          else{
-        	 bearing = COEFF_PROX*imu_bearing(acc_x_calibrated, acc_y_calibrated) + COEFF_IMU*prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
-        	 chprintf((BaseSequentialStream *)&SD3, "Bearing = %.4f", bearing);
+        	 bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
+        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
+        	 bearing_imu = imu_bearing(acc_x_calibrated, acc_y_calibrated);
+        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
+        	 bearing = COEFF_PROX*bearing_imu + COEFF_IMU*bearing_prox;
+        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
         	 move(bearing);
          }
 
