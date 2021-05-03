@@ -78,12 +78,16 @@ void move(float bearing){
 	static float speed_left = 1;
 	static float speed_right = 1;
 
-	if(fabs(speed_left) < 1){//If to prevent variable overflow
+	//if prevents saturation of speed_x variables
+	if(fabs(speed_left) < 1 || (speed_left >= 1 && bearing < 0) || (speed_left <=1 && bearing < 0)){
 		speed_left += SPEED_INC_COEFF*bearing ;
 	}
-	if(fabs(speed_right) < 1){
+	if(fabs(speed_right) < 1 || (speed_right >= 1 && bearing > 0) || (speed_right <=1 && bearing < 0)){
 		speed_right -= SPEED_INC_COEFF*bearing ;
 	}
+
+	chprintf((BaseSequentialStream *)&SD3, "Speed_LEFT = %.4f", speed_left);
+	chprintf((BaseSequentialStream *)&SD3, "Speed_RIGHT = %.4f", speed_right);
 
 	left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_left);
 	right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_right);
@@ -132,15 +136,15 @@ static THD_FUNCTION(SetPath, arg) {
     	//Remove for final version
 
     	//Collect acceleration values
-    	//Using filtered to avoid outliers, shouldn't affect speed significantly
-    	acc_x_calibrated=(get_acceleration(X_AXIS)-offset_x);
-    	acc_y_calibrated=(get_acceleration(Y_AXIS)-offset_y);
-    	acc_z_calibrated=(get_acceleration(Z_AXIS)-offset_z);
+    	//Using non-filtered to maintain high frequency
+    	acc_x_calibrated=(get_acc(X_AXIS)-offset_x);
+    	acc_y_calibrated=(get_acc(Y_AXIS)-offset_y);
+    	acc_z_calibrated=(get_acc(Z_AXIS)-offset_z);
 
     	//Print the offsets:
-    	chprintf((BaseSequentialStream *)&SD3, "Offset_X = %d \r\n", offset_x);
-    	chprintf((BaseSequentialStream *)&SD3, "Offset_Y = %d \r\n", offset_y);
-    	chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
+    	//chprintf((BaseSequentialStream *)&SD3, "Offset_X = %d \r\n", offset_x);
+    	//chprintf((BaseSequentialStream *)&SD3, "Offset_Y = %d \r\n", offset_y);
+    	//chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
 
     	//Print the accelerometer values:
     	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_calibrated);
@@ -150,23 +154,23 @@ static THD_FUNCTION(SetPath, arg) {
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
     	prox_front_right = get_calibrated_prox(PROX_FRONT_RIGHT);
-    	prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
-    	prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
+    	//prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
+    	//prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
     	//prox_left = get_calibrated_prox(PROX_LEFT);
         //prox_right = get_calibrated_prox(PROX_RIGHT);
 
         //Print proximity values
         chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d \r\n", prox_front_left);
         chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d \r\n", prox_front_right);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d \r\n", prox_diag_left);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d \r\n", prox_diag_right);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d \r\n", prox_diag_left);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d \r\n", prox_diag_right);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d \r\n", prox_right);
 
 //Set motor speeds accordingly
         //Case top reached
         //Fix the condition to have a more acceptable threshold
-         if(fabs(acc_z_calibrated) <= IMU_EPSILON){ //Minus because z axis points up
+         if(fabs(acc_z_calibrated) <= IMU_EPSILON*IMU_MAX/2){ //Minus because z axis points up
         	 left_motor_set_speed(0);
         	 right_motor_set_speed(0);
         	 chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
