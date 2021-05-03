@@ -180,7 +180,7 @@ static THD_FUNCTION(SetPath, arg) {
         	 chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
         	 bearing_imu = imu_bearing(acc_x_calibrated, acc_y_calibrated);
         	 chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
-        	 bearing = COEFF_PROX*bearing_imu + COEFF_IMU*bearing_prox;
+        	 bearing = (1-bearing_prox)*bearing_imu + bearing_prox;
         	 chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
         	 move(bearing);
          }
