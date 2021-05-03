@@ -110,7 +110,7 @@ static THD_FUNCTION(SetPath, arg) {
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    //}while(fabs(offset_z) <= (1/2 + 5*IMU_EPSILON)*IMU_RESOLUTION/2 || fabs(offset_z) <= (1/2 - 5*IMU_EPSILON)*IMU_RESOLUTION/2);
+    //}while(fabs(offset_z) >= (1/2 + 5*IMU_EPSILON)*IMU_RESOLUTION/2 || fabs(offset_z) <= (1/2 - 5*IMU_EPSILON)*IMU_RESOLUTION/2);
 
     //May not be necessary because the offset is variable and depends on the ambient light
     //do{//Protection in case of calibration with the sensors covered
