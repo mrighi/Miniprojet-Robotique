@@ -100,20 +100,29 @@ static THD_FUNCTION(SetPath, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-    int16_t offset_x = 0;
-    int16_t offset_y = 0;
-    int16_t offset_z = 0;
+    int16_t offset_x;
+    int16_t offset_y;
+    int16_t offset_z;
 
-    //Protection in case of calibration with the sensors covered
-    do{
+//Calibration of sensors
+    //do{//Protection in case of calibration with the robot tilted
     	calibrate_acc(); //Collects samples for calibration
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    }while((offset_x >= PROX_OFFSET_MAX) || (offset_y >= PROX_OFFSET_MAX) || (offset_z >= PROX_OFFSET_MAX));
+    //}while(fabs(offset_z) <= (1/2 + 5*IMU_EPSILON)*IMU_RESOLUTION/2 || fabs(offset_z) <= (1/2 - 5*IMU_EPSILON)*IMU_RESOLUTION/2);
+
+    //May not be necessary because the offset is variable and depends on the ambient light
+    //do{//Protection in case of calibration with the sensors covered
+    	calibrate_ir();
+    //}while(get_prox(PROX_FRONT_LEFT)-get_calibrated_prox(PROX_FRONT_LEFT) >= PROX_OFFSET_MAX ||
+    		//get_prox(PROX_FRONT_RIGHT)-get_calibrated_prox(PROX_FRONT_RIGHT) >= PROX_OFFSET_MAX ||
+			//get_prox(PROX_DIAG_LEFT)-get_calibrated_prox(PROX_DIAG_LEFT) >= PROX_OFFSET_MAX ||
+			//get_prox(PROX_DIAG_RIGHT)-get_calibrated_prox(PROX_DIAG_RIGHT) >= PROX_OFFSET_MAX);
 
     systime_t time;
 
+//Declaration of variables
     int16_t acc_x_calibrated;
     int16_t acc_y_calibrated;
     int16_t acc_z_calibrated;
@@ -154,8 +163,8 @@ static THD_FUNCTION(SetPath, arg) {
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
     	prox_front_right = get_calibrated_prox(PROX_FRONT_RIGHT);
-    	//prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
-    	//prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
+    	prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
+    	prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
     	//prox_left = get_calibrated_prox(PROX_LEFT);
         //prox_right = get_calibrated_prox(PROX_RIGHT);
 
