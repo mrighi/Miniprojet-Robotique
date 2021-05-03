@@ -1,12 +1,6 @@
 #ifndef CLIMB2_H_
 #define CLIMB2_H_
 
-
-#ifndef CLIMB_H
-#define CLIMB_H
-
-#define STATIC_PROX
-
 #define PROX_FRONT_RIGHT 			0
 #define PROX_FRONT_LEFT 			7
 #define PROX_DIAG_RIGHT				1
@@ -20,20 +14,16 @@
 
 #define g							9.81
 
-#define SPEED						550 	//Goes -1100 to 1100
-#define SPEED_MAX					1100
-
 #define SPEED_INC_COEFF				0.01
 
-//#define IMU_SAMPLE_SIZE				50 		//The base functions use 50
+#define IMU_SAMPLE_SIZE				50 		//The base functions use 50
 #define IMU_EPSILON					0.01	//Determined empirically
-
 #define IMU_RESOLUTION				32000
 #define IMU_MAX						2*g
 
 #define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000
-#define PROX_THRESHOLD	60 	//Determined empirically
+#define PROX_THRESHOLD				60 		//Determined empirically
 
 #define COEFF_IMU					0.3		//Determined empirically
 #define COEFF_PROX					0.7		//Determined empirically
@@ -46,8 +36,5 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 void move(float bearing);
 
 void set_path_start(void);
-
-#endif /* CLIMB_H */
-
 
 #endif /* CLIMB2_H_ */

@@ -1,6 +1,4 @@
 //MUST CORRECT:
-//MAX_SPEED is already in motors.h
-//Use filtered accelerometer values
 //Change bearing to int8_t and on -100 to 100
 
 #include "ch.h"
@@ -42,14 +40,22 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 
 float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
 	static bool direction_toggle = 0; //Arbitrary direction if all sensors are blocked
+	static bool inc_toggle = 1; //Used in handling of direction toggle
+
 	if(prox_front_left >= PROX_THRESHOLD && prox_front_right >= PROX_THRESHOLD){
-		if(prox_diag_left >= PROX_THRESHOLD && prox_diag_right <= PROX_THRESHOLD){
+		if(prox_diag_left >= PROX_THRESHOLD && prox_diag_right >= PROX_THRESHOLD){
 			//In this case the robot makes a sharp turn in an arbitrary direction
 			//SHARP turn : returns +-1 as opposed to <1
-			//Direction is toggled every cycle, to prevent back-and-forth loops and improve efficiency
-			++direction_toggle; //Assume spg at least one sensor is cleared after one cycle
+			//Direction is toggled to prevent back-and-forth loops improve climb efficiency (guess right turn as often as left)
+			inc_toggle=1;
 			return 1-2*direction_toggle; //+1 or -1
 		}
+
+		if(inc_toggle){ //Increment the direction toggle if head-on collision avoided
+			inc_toggle=0;
+			++direction_toggle;
+		}
+
 		if(prox_diag_left >= PROX_THRESHOLD){
 			return -prox_diag_left/(2*PROX_MAX); //Smaller angle correction for 45° sensors
 		}
@@ -57,10 +63,16 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 			return prox_diag_right/(2*PROX_MAX);
 		}
 	}
-	if(prox_front_left >= PROX_THRESHOLD){
+
+	if(inc_toggle){ //Increment the direction toggle if head-on collision avoided
+		inc_toggle=0;
+		++direction_toggle;
+	}
+
+	if(prox_front_left >= PROX_THRESHOLD){ //If obstacle on left then turn right
 		return -prox_front_left/PROX_MAX;
 	}
-	if(prox_front_right >= PROX_THRESHOLD){
+	if(prox_front_right >= PROX_THRESHOLD){ //If obstacle on right turn then left
 		return prox_front_right/PROX_MAX;
 	}
 	return 0;
@@ -72,10 +84,16 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 void move(float bearing){
 	static float speed_left = 1;
 	static float speed_right = 1;
-	speed_left = speed_left + SPEED_INC_COEFF*bearing ;
-	speed_right = speed_right - SPEED_INC_COEFF*bearing ;
-	left_motor_set_speed(SPEED_MAX*speed_left);
-	right_motor_set_speed(SPEED_MAX*speed_right);
+
+	if(fabs(speed_left) < 1){//If to prevent variable overflow
+		speed_left += SPEED_INC_COEFF*bearing ;
+	}
+	if(fabs(speed_right) < 1){
+		speed_right -= SPEED_INC_COEFF*bearing ;
+	}
+
+	left_motor_set_speed(MOTOR_SPEED_LIMIT*speed_left);
+	right_motor_set_speed(MOTOR_SPEED_LIMIT*speed_right);
 }
 
 static THD_WORKING_AREA(waSetPath, 256);
@@ -119,9 +137,10 @@ static THD_FUNCTION(SetPath, arg) {
     	//Remove for final version
 
     	//Collect acceleration values
-    	acc_x_calibrated=(get_acceleration(X_AXIS)-offset_x);
-    	acc_y_calibrated=(get_acceleration(Y_AXIS)-offset_y);
-    	acc_z_calibrated=(get_acceleration(Z_AXIS)-offset_z);
+    	//Using filtered to avoid outliers, shouldn't affect speed significantly
+    	acc_x_calibrated=(get_acc_filtered(X_AXIS, IMU_SAMPLE_SIZE)-offset_x);
+    	acc_y_calibrated=(get_acc_filtered(Y_AXIS, IMU_SAMPLE_SIZE)-offset_y);
+    	acc_z_calibrated=(get_acc_filtered(Z_AXIS, IMU_SAMPLE_SIZE)-offset_z);
 
     	//Print the offsets:
     	chprintf((BaseSequentialStream *)&SD3, "Offset_X = %d \r\n", offset_x);
