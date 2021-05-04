@@ -77,7 +77,7 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 //Control in speed, not position, to limit accelerations
 //Smoother speeds profile = optimized climb
 //SPEED_INC_COEFF controls the transient of the speed : 1 = no transient, ->0 = long transient
-void move(float bearing){
+/*void move(float bearing){
 	static float speed_left = 1;
 	static float speed_right = 1;
 
@@ -94,6 +94,21 @@ void move(float bearing){
 
 	left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_left);
 	right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_right);
+}*/
+
+void move(float bearing){
+	if(bearing > 0){
+		left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
+		right_motor_set_speed(-SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
+	}
+	else if(bearing < 0){
+		left_motor_set_speed(-SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
+		right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
+	}
+	else if(bearing == 0){
+		left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
+		right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
+	}
 }
 
 static THD_WORKING_AREA(waSetPath, 256);
