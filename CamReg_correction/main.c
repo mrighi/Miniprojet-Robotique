@@ -11,14 +11,14 @@
 #include <motors.h>
 #include <sensors/proximity.h>
 #include <sensors/imu.h>
-#include <camera/po8030.h>
-#include <i2c_bus.h>
-#include <chprintf.h>
+//#include <camera/po8030.h>
+//#include <i2c_bus.h>
+//#include <chprintf.h>
 
 #include <climb2.h>
 
-#include <pi_regulator.h>
-#include <process_image.h>
+//#include <pi_regulator.h>
+//#include <process_image.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -50,9 +50,6 @@ int main(void){
 	//Motors initialization
 	motors_init();
 
-	//IR sensors initialization
-	proximity_start();
-
 	//From TP4:
 	//timer11_start();
 
@@ -60,12 +57,14 @@ int main(void){
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
 
 	//I2C bus initialization
-	i2c_start(); //May or may not be necessary for IMU
+	//i2c_start(); //Called in IMU
 
 	//IMU initialization
 	imu_start();
 
-	//Start all threads here
+	//IR sensors initialization
+	proximity_start();
+
 	//Start the SetPath thread
 	set_path_start();
 

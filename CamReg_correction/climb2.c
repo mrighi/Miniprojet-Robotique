@@ -1,15 +1,11 @@
-//MUST CORRECT:
-//Change bearing to int8_t and on -100 to 100
-//Put back the arctan in the imu bearing
-
 #include "ch.h"
 #include "hal.h"
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
-#include <i2c_bus.h>
+//#include <i2c_bus.h>
 
-#include <main.h> //COPIED FROM TP5 ; I HAVE MY DOUBTS
+//#include <main.h> //COPIED FROM TP5 ; I HAVE MY DOUBTS
 #include <motors.h>
 #include <sensors/imu.h>
 #include <sensors/proximity.h>
@@ -17,24 +13,24 @@
 
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
-//Convention used throughout:
-// 1 = left, 0 = straight, -1 = right (trigonometric direction)
+//Convention used throughout: trigonometric direction
+// <=100 = left, 0 = straight, >=-100 = right
 
-float imu_bearing(int16_t acc_x, int16_t acc_y){
+int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
 	//Limit cases to avoid division by zero
 	if(acc_y <= IMU_EPSILON*2/IMU_RESOLUTION && acc_x > 0){
-		return 1 ;
+		return 100 ;
 	}
 	if(acc_y <= IMU_EPSILON*2/IMU_RESOLUTION && acc_x < 0){
-		return -1 ;
+		return -100 ;
 	}
 	if(fabs(acc_y) <= IMU_RESOLUTION*3*IMU_EPSILON){
 		return 0;
 	}
-	return atan2f(acc_x, acc_y)*0.637f; //0.637 = 2/pi
+	return (int8_t)(atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
 }
 
-float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
+int8_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
 	static bool direction_toggle = 0; //Arbitrary direction if all sensors are blocked
 	static bool inc_toggle = 1; //Used in handling of direction toggle
 
@@ -44,7 +40,7 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 			//SHARP turn : returns +-1 as opposed to <1
 			//Direction is toggled to prevent back-and-forth loops improve climb efficiency (guess right turn as often as left)
 			inc_toggle=1;
-			return 1-2*direction_toggle; //+1 or -1
+			return (1-2*direction_toggle)*100; //+100 or -100
 		}
 
 		if(inc_toggle){ //Increment the direction toggle if head-on collision avoided
@@ -53,10 +49,10 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 		}
 
 		if(prox_diag_left >= PROX_THRESHOLD){
-			return -prox_diag_left/(2*PROX_MAX); //Smaller angle correction for 45° sensors
+			return -prox_diag_left*100/(2*PROX_MAX); //Smaller angle correction for 45° sensors
 		}
 		if(prox_diag_right >= PROX_THRESHOLD){
-			return prox_diag_right/(2*PROX_MAX);
+			return prox_diag_right*100/(2*PROX_MAX);
 		}
 	}
 
@@ -66,16 +62,15 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 	}
 
 	if(prox_front_left >= PROX_THRESHOLD){ //If obstacle on left then turn right
-		return -prox_front_left/PROX_MAX;
+		return -prox_front_left*100/PROX_MAX;
 	}
 	if(prox_front_right >= PROX_THRESHOLD){ //If obstacle on right turn then left
-		return prox_front_right/PROX_MAX;
+		return prox_front_right*100/PROX_MAX;
 	}
 	return 0;
 }
 
-//Control in speed, not position, to limit accelerations
-//Smoother speeds profile = optimized climb
+//Control in acceleration to limit accelerations to increase accuracy of IMU
 //SPEED_INC_COEFF controls the transient of the speed : 1 = no transient, ->0 = long transient
 void move(float bearing){
 	static float speed_left = 1;
@@ -108,20 +103,20 @@ static THD_FUNCTION(SetPath, arg) {
     int16_t offset_z;
 
 //Calibration of sensors
-    //do{//Protection in case of calibration with the robot tilted
+    do{//Protection in case of calibration with the robot tilted
     	calibrate_acc(); //Collects samples for calibration
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    //}while(fabs(offset_z) >= (1/2 + 5*IMU_EPSILON)*IMU_RESOLUTION/2 || fabs(offset_z) <= (1/2 - 5*IMU_EPSILON)*IMU_RESOLUTION/2);
+    }while(fabs(offset_z) >= (1/2 + 5*IMU_EPSILON)*IMU_RESOLUTION || fabs(offset_z) <= (1/2 - 5*IMU_EPSILON)*IMU_RESOLUTION);
 
     //May not be necessary because the offset is variable and depends on the ambient light
-    //do{//Protection in case of calibration with the sensors covered
+    do{//Protection in case of calibration with the sensors covered
     	calibrate_ir();
-    //}while(get_prox(PROX_FRONT_LEFT)-get_calibrated_prox(PROX_FRONT_LEFT) >= PROX_OFFSET_MAX ||
-    		//get_prox(PROX_FRONT_RIGHT)-get_calibrated_prox(PROX_FRONT_RIGHT) >= PROX_OFFSET_MAX ||
-			//get_prox(PROX_DIAG_LEFT)-get_calibrated_prox(PROX_DIAG_LEFT) >= PROX_OFFSET_MAX ||
-			//get_prox(PROX_DIAG_RIGHT)-get_calibrated_prox(PROX_DIAG_RIGHT) >= PROX_OFFSET_MAX);
+    }while(get_prox(PROX_FRONT_LEFT)-get_calibrated_prox(PROX_FRONT_LEFT) >= PROX_OFFSET_MAX ||
+    		get_prox(PROX_FRONT_RIGHT)-get_calibrated_prox(PROX_FRONT_RIGHT) >= PROX_OFFSET_MAX ||
+			get_prox(PROX_DIAG_LEFT)-get_calibrated_prox(PROX_DIAG_LEFT) >= PROX_OFFSET_MAX ||
+			get_prox(PROX_DIAG_RIGHT)-get_calibrated_prox(PROX_DIAG_RIGHT) >= PROX_OFFSET_MAX);
 
     systime_t time;
 
@@ -135,9 +130,9 @@ static THD_FUNCTION(SetPath, arg) {
     int prox_diag_left;
     int prox_diag_right;
 
-    float bearing_prox;
-    float bearing_imu;
-    float bearing ;
+    int8_t bearing_prox;
+    int8_t bearing_imu;
+    int8_t bearing ;
 
     while(1){
     	time = chVTGetSystemTime();
