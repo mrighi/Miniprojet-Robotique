@@ -31,7 +31,7 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(fabs(acc_y) <= IMU_RESOLUTION*3*IMU_EPSILON){
 		return 0;
 	}
-	return atan2(acc_x, acc_y)*0.637f; //0.637 = 2/pi
+	return atan2f(acc_x, acc_y)*0.637f; //0.637 = 2/pi
 }
 
 float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
@@ -77,7 +77,7 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 //Control in speed, not position, to limit accelerations
 //Smoother speeds profile = optimized climb
 //SPEED_INC_COEFF controls the transient of the speed : 1 = no transient, ->0 = long transient
-/*void move(float bearing){
+void move(float bearing){
 	static float speed_left = 1;
 	static float speed_right = 1;
 
@@ -92,23 +92,8 @@ float prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left
 	chprintf((BaseSequentialStream *)&SD3, "Speed_LEFT = %.4f", speed_left);
 	chprintf((BaseSequentialStream *)&SD3, "Speed_RIGHT = %.4f", speed_right);
 
-	left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_left);
-	right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_right);
-}*/
-
-void move(float bearing){
-	if(bearing > 0){
-		left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
-		right_motor_set_speed(-SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
-	}
-	else if(bearing < 0){
-		left_motor_set_speed(-SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
-		right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
-	}
-	else if(bearing == 0){
-		left_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
-		right_motor_set_speed(SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT);
-	}
+	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_left);
+	right_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_right);
 }
 
 static THD_WORKING_AREA(waSetPath, 256);
