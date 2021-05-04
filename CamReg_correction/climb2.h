@@ -14,7 +14,7 @@
 
 #define g							9.81
 
-#define SPEED_INC_COEFF				0.01
+#define SPEED_INC_COEFF				1
 #define SPEED_MAX_COEFF				0.5 	//Limit max speed of the robot
 
 #define IMU_SAMPLE_SIZE				50 		//The base functions use 50

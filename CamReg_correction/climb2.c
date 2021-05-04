@@ -28,6 +28,9 @@ float imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(acc_y <= IMU_EPSILON*2/IMU_RESOLUTION && acc_x < 0){
 		return -1 ;
 	}
+	if(fabs(acc_y) <= IMU_RESOLUTION*3*IMU_EPSILON){
+		return 0;
+	}
 	return atan2(acc_x, acc_y)*0.637f; //0.637 = 2/pi
 }
 
@@ -79,10 +82,10 @@ void move(float bearing){
 	static float speed_right = 1;
 
 	//if prevents saturation of speed_x variables
-	if(fabs(speed_left) < 1 || (speed_left >= 1 && bearing < 0) || (speed_left <=1 && bearing < 0)){
+	if(fabs(speed_left) < 1 || (speed_left >= 1 && bearing < 0) || (speed_left <=-1 && bearing > 0)){
 		speed_left += SPEED_INC_COEFF*bearing ;
 	}
-	if(fabs(speed_right) < 1 || (speed_right >= 1 && bearing > 0) || (speed_right <=1 && bearing < 0)){
+	if(fabs(speed_right) < 1 || (speed_right >= 1 && bearing > 0) || (speed_right <=-1 && bearing < 0)){
 		speed_right -= SPEED_INC_COEFF*bearing ;
 	}
 

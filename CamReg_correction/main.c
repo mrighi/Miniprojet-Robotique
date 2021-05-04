@@ -15,7 +15,7 @@
 #include <i2c_bus.h>
 #include <chprintf.h>
 
-#include <climb.h>
+#include <climb2.h>
 
 #include <pi_regulator.h>
 #include <process_image.h>
