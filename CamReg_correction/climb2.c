@@ -70,25 +70,22 @@ int8_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_lef
 	return 0;
 }
 
-//Control in acceleration to limit accelerations to increase accuracy of IMU
-//SPEED_INC_COEFF controls the transient of the speed : 1 = no transient, ->0 = long transient
-void move(float bearing){
-	static float speed_left = 1;
-	static float speed_right = 1;
+//Basic PID
+void move (int8_t bearing){
+	static int8_t bearing_prev = 0;
+	static int8_t bearingI = 0;
+	static int8_t bearingD = 0;
 
-	//if prevents saturation of speed_x variables
-	if(fabs(speed_left) < 1 || (speed_left >= 1 && bearing < 0) || (speed_left <=-1 && bearing > 0)){
-		speed_left += SPEED_INC_COEFF*bearing ;
-	}
-	if(fabs(speed_right) < 1 || (speed_right >= 1 && bearing > 0) || (speed_right <=-1 && bearing < 0)){
-		speed_right -= SPEED_INC_COEFF*bearing ;
+	if(fabs(bearing_I) < 1 || (bearing >= 1 && bearing < 0) || (bearing <= -1 && bearing > 0)){ //Prevent saturation
+		bearingI += bearing ;
 	}
 
-	chprintf((BaseSequentialStream *)&SD3, "Speed_LEFT = %.4f", speed_left);
-	chprintf((BaseSequentialStream *)&SD3, "Speed_RIGHT = %.4f", speed_right);
+	int8_t delta = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingD;
 
-	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_left);
-	right_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*speed_right);
+	bearing_prev = bearing;
+
+	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+	right_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 }
 
 static THD_WORKING_AREA(waSetPath, 256);

@@ -27,8 +27,12 @@
 #define PROX_MAX					1000
 #define PROX_THRESHOLD				60 		//Determined empirically
 
-#define COEFF_IMU					0.3		//Determined empirically
-#define COEFF_PROX					0.7		//Determined empirically
+#define Kp							0.3
+#define Kd							0.3
+#define Ki							0.3
+
+//#define COEFF_IMU					0.3		//Determined empirically
+//#define COEFF_PROX					0.7		//Determined empirically
 
 
 int8_t imu_bearing(int16_t acc_x, int16_t acc_y);
