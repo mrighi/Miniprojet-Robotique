@@ -39,7 +39,7 @@ int8_t imu_bearing(int16_t acc_x, int16_t acc_y);
 
 int8_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right);
 
-void move(float bearing);
+void move(int8_t bearing);
 
 void set_path_start(void);
 

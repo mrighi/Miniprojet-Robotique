@@ -74,13 +74,12 @@ int8_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_lef
 void move (int8_t bearing){
 	static int8_t bearing_prev = 0;
 	static int8_t bearingI = 0;
-	static int8_t bearingD = 0;
 
-	if(fabs(bearing_I) < 1 || (bearing >= 1 && bearing < 0) || (bearing <= -1 && bearing > 0)){ //Prevent saturation
+	if(fabs(bearingI) < 1 || (bearingI >= 1 && bearing < 0) || (bearingI <= -1 && bearing > 0)){ //Prevent saturation
 		bearingI += bearing ;
 	}
 
-	int8_t delta = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingD;
+	int8_t delta = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
 
 	bearing_prev = bearing;
 
