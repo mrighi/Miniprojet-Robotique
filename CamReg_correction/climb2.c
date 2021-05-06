@@ -83,6 +83,9 @@ void move (int8_t bearing){
 
 	bearing_prev = bearing;
 
+	chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d \r\n", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+	chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d \r\n", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+
 	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 	right_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 }
