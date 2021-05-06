@@ -123,25 +123,21 @@ static THD_FUNCTION(SetPath, arg) {
     systime_t time;
 
 //Declaration of variables
-    int16_t acc_x_calibrated;
-    int16_t acc_y_calibrated;
-    int16_t acc_z_calibrated;
 
-    int16_t acc_x_sum = 0;
-    int16_t acc_y_sum = 0;
-    int16_t acc_z_sum = 0;
+    int16_t acc_x_buffer[IMU_BUFFER_SIZE];
+    int16_t acc_y_buffer[IMU_BUFFER_SIZE];
+    int16_t acc_z_buffer[IMU_BUFFER_SIZE];
 
-    //Initialized to zero to prevent movement on first sampling cycle
-    int16_t acc_x_averaged = 0;
-    int16_t acc_y_averaged = 0;
-    int16_t acc_z_averaged = 0;
+    int buffer_place = 0;
+
+    int16_t acc_x_averaged=0;
+    int16_t acc_y_averaged=0;
+    int16_t acc_z_averaged=0;
 
     int prox_front_left;
     int prox_front_right;
     int prox_diag_left;
     int prox_diag_right;
-
-    int sampling_counter = 0;
 
     int8_t bearing_prox;
     int8_t bearing_imu;
@@ -155,21 +151,39 @@ static THD_FUNCTION(SetPath, arg) {
     	//Done here because all variables are also printed
     	//Remove for final version
 
-    	//Collect acceleration values
-    	//Using non-filtered to maintain high frequency
-    	acc_x_calibrated=(get_acc(X_AXIS)-offset_x);
-    	acc_y_calibrated=(get_acc(Y_AXIS)-offset_y);
-    	acc_z_calibrated=(get_acc(Z_AXIS)-offset_z);
+    	//Calculated instantaneous acceleration values
+    	acc_x_buffer[buffer_place]= get_acc(X_AXIS)-offset_x ;
+    	acc_y_buffer[buffer_place]= get_acc(Y_AXIS)-offset_y ;
+    	acc_z_buffer[buffer_place]= get_acc(Z_AXIS)-offset_z ;
 
-    	//Print the offsets:
-    	//chprintf((BaseSequentialStream *)&SD3, "Offset_X = %d \r\n", offset_x);
-    	//chprintf((BaseSequentialStream *)&SD3, "Offset_Y = %d \r\n", offset_y);
-    	//chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
+    	//Increment position on the buffer
+    	if(buffer_place < 10){
+    		++buffer_place;
+    	}
+    	else{
+    		buffer_place = 0;
+    	}
 
-    	//Print the accelerometer values:
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_calibrated);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_calibrated);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_calibrated);
+    	//Calculate running average for acceleration values
+    	for(int i=0; i<IMU_BUFFER_SIZE; ++i){
+    		acc_x_averaged += acc_x_buffer[i];
+    	}
+    	acc_x_averaged = acc_x_averaged / IMU_BUFFER_SIZE;
+
+    	for(int i=0; i<IMU_BUFFER_SIZE; ++i){
+    	    acc_y_averaged += acc_y_buffer[i];
+    	}
+    	acc_y_averaged = acc_y_averaged / IMU_BUFFER_SIZE;
+
+    	for(int i=0; i<IMU_BUFFER_SIZE; ++i){
+    	    acc_z_averaged += acc_z_buffer[i];
+    	}
+    	acc_z_averaged = acc_z_averaged / IMU_BUFFER_SIZE;
+
+    	//Print averaged accelerometer values:
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
 
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
@@ -187,39 +201,22 @@ static THD_FUNCTION(SetPath, arg) {
         //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d \r\n", prox_right);
 
-    	if(sampling_counter < IMU_SAMPLE_SIZE){
-    		++sampling_counter;
-    		acc_x_sum += acc_x_calibrated;
-    		acc_y_sum += acc_y_calibrated;
-    		acc_z_sum += acc_z_calibrated;
-    	}
-    	else{
-    		sampling_counter = 0;
-
-    		acc_x_averaged = acc_x_sum / IMU_SAMPLE_SIZE;
-    		acc_y_averaged = acc_y_sum / IMU_SAMPLE_SIZE;
-    		acc_z_averaged = acc_z_sum / IMU_SAMPLE_SIZE;
-
-    		acc_x_sum = 0;
-    		acc_y_sum = 0;
-    		acc_z_sum = 0;
-
-    		chprintf((BaseSequentialStream *)&SD3, "Acc_X_AVG = %d \r\n", acc_x_averaged);
-    		chprintf((BaseSequentialStream *)&SD3, "Acc_Y_AVG = %d \r\n", acc_y_averaged);
-    		chprintf((BaseSequentialStream *)&SD3, "Acc_Z_AVG = %d \r\n", acc_z_averaged);
-    	}
-
     	if(fabs(acc_x_averaged) <= IMU_TOP_THRESHOLD &&
             	fabs(acc_y_averaged) <= IMU_TOP_THRESHOLD &&
-    			fabs(acc_z_averaged) <= IMU_TOP_THRESHOLD){
+    			fabs(acc_z_averaged) <= IMU_TOP_THRESHOLD ){
+
     		left_motor_set_speed(0);
     		right_motor_set_speed(0);
+
     		chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
+
+    		//chThdSleepUntilWindowed(time, time + MS2ST(10)); //Slows down the cycle by a factor of 10 -> idle mode
     	}
+
          else{
         	 bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
-        	 bearing_imu = imu_bearing(acc_x_calibrated, acc_y_calibrated);
+        	 bearing_imu = imu_bearing(acc_x_averaged, acc_y_averaged);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
         	 bearing = (1-bearing_prox)*bearing_imu + bearing_prox;
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
