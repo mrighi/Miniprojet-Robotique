@@ -24,7 +24,7 @@ int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(acc_y <= IMU_EPSILON*2/IMU_RESOLUTION && acc_x < 0){
 		return -100 ;
 	}
-	if(fabs(acc_y) <= IMU_RESOLUTION*3*IMU_EPSILON){
+	if(fabs(acc_x) <= IMU_RESOLUTION*IMU_EPSILON){
 		return 0;
 	}
 	return (int8_t)(atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
@@ -82,15 +82,15 @@ void move (int8_t bearing){
 	int8_t delta = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
 
 	bearing_prev = bearing;
-
-	//chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d \r\n", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
-	//chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d \r\n", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+//	chprintf((BaseSequentialStream *)&SD3, "Delta = %d", delta);
+//	chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+//	chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 
 	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 	right_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 }
 
-static THD_WORKING_AREA(waSetPath, 256);
+static THD_WORKING_AREA(waSetPath, 512);
 
 static THD_FUNCTION(SetPath, arg) {
 
@@ -107,7 +107,7 @@ static THD_FUNCTION(SetPath, arg) {
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    	chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
+    	//chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
     	chprintf((BaseSequentialStream *)&SD3, "CalibratingOff...");
     }while(offset_z < IMU_OFFSET_MAX || offset_z > IMU_OFFSET_MIN);//Calibrating
 
@@ -124,11 +124,12 @@ static THD_FUNCTION(SetPath, arg) {
 
 //Declaration of variables
 
-    int16_t acc_x_buffer[IMU_BUFFER_SIZE];
-    int16_t acc_y_buffer[IMU_BUFFER_SIZE];
-    int16_t acc_z_buffer[IMU_BUFFER_SIZE];
+    int16_t acc_x_buffer[IMU_BUFFER_SIZE_XY];
+    int16_t acc_y_buffer[IMU_BUFFER_SIZE_XY];
+    int16_t acc_z_buffer[IMU_BUFFER_SIZE_Z];
 
-    int buffer_place = 0;
+    int buffer_place_xy = 0;
+    int buffer_place_z = 0;
 
     int16_t acc_x_averaged=0;
     int16_t acc_y_averaged=0;
@@ -152,33 +153,38 @@ static THD_FUNCTION(SetPath, arg) {
     	//Remove for final version
 
     	//Calculated instantaneous acceleration values
-    	acc_x_buffer[buffer_place]= get_acc(X_AXIS)-offset_x ;
-    	acc_y_buffer[buffer_place]= get_acc(Y_AXIS)-offset_y ;
-    	acc_z_buffer[buffer_place]= get_acc(Z_AXIS)-offset_z ;
-
+    	acc_x_buffer[buffer_place_xy]= get_acc(X_AXIS)-offset_x ;
+    	acc_y_buffer[buffer_place_xy]= get_acc(Y_AXIS)-offset_y ;
+    	acc_z_buffer[buffer_place_z]= get_acc(Z_AXIS)-offset_z ;
+    	chprintf((BaseSequentialStream *)&SD3, "acc_y = %d", get_acc(Y_AXIS));
+    	chprintf((BaseSequentialStream *)&SD3, "offy = %d", offset_y);
     	//Increment position on the buffer
-    	if(buffer_place < IMU_BUFFER_SIZE){
-    		++buffer_place;
+    	if(buffer_place_xy < IMU_BUFFER_SIZE_XY){
+    		++buffer_place_xy;
     	}
     	else{
-    		buffer_place = 0;
+    		buffer_place_xy = 0;
+    	}
+    	if(buffer_place_z < IMU_BUFFER_SIZE_Z){
+    	    ++buffer_place_z;
+    	}
+    	else{
+    		buffer_place_z = 0;
     	}
 
     	//Calculate running average for acceleration values
-    	for(int i=0; i<IMU_BUFFER_SIZE; ++i){
+    	for(int i=0; i<IMU_BUFFER_SIZE_XY; ++i){
     		acc_x_averaged += acc_x_buffer[i];
+    		acc_y_averaged += acc_y_buffer[i];
     	}
-    	acc_x_averaged = acc_x_averaged / IMU_BUFFER_SIZE;
+    	for(int i=0; i<IMU_BUFFER_SIZE_Z; ++i){
+    		acc_z_averaged += acc_z_buffer[i];
+    	}
 
-    	for(int i=0; i<IMU_BUFFER_SIZE; ++i){
-    	    acc_y_averaged += acc_y_buffer[i];
-    	}
-    	acc_y_averaged = acc_y_averaged / IMU_BUFFER_SIZE;
 
-    	for(int i=0; i<IMU_BUFFER_SIZE; ++i){
-    	    acc_z_averaged += acc_z_buffer[i];
-    	}
-    	acc_z_averaged = acc_z_averaged / IMU_BUFFER_SIZE;
+    	acc_x_averaged = acc_x_averaged / IMU_BUFFER_SIZE_XY;
+    	acc_y_averaged = acc_y_averaged / IMU_BUFFER_SIZE_XY;
+    	acc_z_averaged = acc_z_averaged / IMU_BUFFER_SIZE_Z;
 
     	//Print averaged accelerometer values:
     	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
@@ -201,9 +207,9 @@ static THD_FUNCTION(SetPath, arg) {
         //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d \r\n", prox_right);
 
-    	if(fabs(acc_x_averaged) <= IMU_TOP_THRESHOLD &&
-            	fabs(acc_y_averaged) <= IMU_TOP_THRESHOLD &&
-    			fabs(acc_z_averaged) <= IMU_TOP_THRESHOLD ){
+    	if(acc_z_averaged < IMU_TOP_THRESHOLD &&
+            	acc_y_averaged < IMU_TOP_THRESHOLD /*&&
+    			fabs(acc_x_averaged) <= IMU_TOP_THRESHOLD*/){
 
     		left_motor_set_speed(0);
     		right_motor_set_speed(0);

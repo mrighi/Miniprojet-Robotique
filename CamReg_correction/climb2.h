@@ -18,24 +18,23 @@
 #define SPEED_INC_COEFF				1
 #define SPEED_MAX_COEFF				0.003 	//Limit max speed of the robot
 
-#define IMU_BUFFER_SIZE				10
+#define IMU_BUFFER_SIZE_XY			5
+#define IMU_BUFFER_SIZE_Z			50
 #define IMU_SAMPLE_SIZE				100 	//The base functions use 50
 #define IMU_EPSILON					0.01	//Determined empirically
 #define IMU_RESOLUTION				32000
 #define IMU_MAX						2*g
 #define IMU_OFFSET_MAX				-17000
 #define IMU_OFFSET_MIN				-15000
-#define IMU_TOP_THRESHOLD			300
+#define IMU_TOP_THRESHOLD			150
 
 #define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000
 #define PROX_THRESHOLD				60 		//Determined empirically
 
-#define Kp_SPEED					1;
-
-#define Kp							0.3
-#define Kd							0.3
-#define Ki							0.3
+#define Kp							2
+#define Kd							1
+#define Ki							0
 
 //#define COEFF_IMU					0.3		//Determined empirically
 //#define COEFF_PROX					0.7		//Determined empirically
