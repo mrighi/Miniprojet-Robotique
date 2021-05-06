@@ -22,6 +22,9 @@
 #define IMU_EPSILON					0.01	//Determined empirically
 #define IMU_RESOLUTION				32000
 #define IMU_MAX						2*g
+#define IMU_OFFSET_MAX				-17000
+#define IMU_OFFSET_MIN				-15000
+#define IMU_TOP_THRESHOLD			300
 
 #define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000

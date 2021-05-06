@@ -3,7 +3,7 @@
 #include <math.h>
 #include <usbcfg.h>
 #include <chprintf.h>
-//#include <i2c_bus.h>
+#include <i2c_bus.h>
 
 //#include <main.h> //COPIED FROM TP5 ; I HAVE MY DOUBTS
 #include <motors.h>
@@ -83,8 +83,8 @@ void move (int8_t bearing){
 
 	bearing_prev = bearing;
 
-	chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d \r\n", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
-	chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d \r\n", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+	//chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d \r\n", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+	//chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d \r\n", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 
 	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 	right_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
@@ -107,11 +107,14 @@ static THD_FUNCTION(SetPath, arg) {
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    }while(fabs(offset_z) >= (1/2 + 5*IMU_EPSILON)*IMU_RESOLUTION || fabs(offset_z) <= (1/2 - 5*IMU_EPSILON)*IMU_RESOLUTION);
+    	chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
+    	chprintf((BaseSequentialStream *)&SD3, "CalibratingOff...");
+    }while(offset_z < IMU_OFFSET_MAX || offset_z > IMU_OFFSET_MIN);//Calibrating
 
     //May not be necessary because the offset is variable and depends on the ambient light
     do{//Protection in case of calibration with the sensors covered
     	calibrate_ir();
+    	chprintf((BaseSequentialStream *)&SD3, "CalibratingIR...");
     }while(get_prox(PROX_FRONT_LEFT)-get_calibrated_prox(PROX_FRONT_LEFT) >= PROX_OFFSET_MAX ||
     		get_prox(PROX_FRONT_RIGHT)-get_calibrated_prox(PROX_FRONT_RIGHT) >= PROX_OFFSET_MAX ||
 			get_prox(PROX_DIAG_LEFT)-get_calibrated_prox(PROX_DIAG_LEFT) >= PROX_OFFSET_MAX ||
@@ -128,6 +131,9 @@ static THD_FUNCTION(SetPath, arg) {
     int prox_front_right;
     int prox_diag_left;
     int prox_diag_right;
+
+    int top_counter = 0;
+    bool moving = 1;
 
     int8_t bearing_prox;
     int8_t bearing_imu;
@@ -166,8 +172,8 @@ static THD_FUNCTION(SetPath, arg) {
         //prox_right = get_calibrated_prox(PROX_RIGHT);
 
         //Print proximity values
-        chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d \r\n", prox_front_left);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d \r\n", prox_front_right);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d \r\n", prox_front_left);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d \r\n", prox_front_right);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d \r\n", prox_diag_left);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d \r\n", prox_diag_right);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
@@ -176,18 +182,34 @@ static THD_FUNCTION(SetPath, arg) {
 //Set motor speeds accordingly
         //Case top reached
         //Fix the condition to have a more acceptable threshold
-         if(fabs(acc_z_calibrated) <= IMU_EPSILON*IMU_MAX/2){ //Minus because z axis points up
+         if(moving && fabs(acc_x_calibrated) <= IMU_TOP_THRESHOLD &&
+        	fabs(acc_y_calibrated) <= IMU_TOP_THRESHOLD &&
+			fabs(acc_z_calibrated) <= IMU_TOP_THRESHOLD){ //Minus because z axis points up
+        	 ++top_counter;
+         }
+         else if(top_counter > 0){
+        	 --top_counter;
+         }
+
+         chprintf((BaseSequentialStream *)&SD3, "Counter = %d", top_counter);
+
+         if(moving && top_counter == 10)//Magic
+        	 moving = 0;
+
+         if(!moving && top_counter == 0)
+        	 moving = 1;
+
+         if(!moving){
         	 left_motor_set_speed(0);
         	 right_motor_set_speed(0);
-        	 chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
          }
          else{
         	 bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
-        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
+        	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
         	 bearing_imu = imu_bearing(acc_x_calibrated, acc_y_calibrated);
-        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
+        	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
         	 bearing = (1-bearing_prox)*bearing_imu + bearing_prox;
-        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
+        	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
         	 move(bearing);
          }
 
