@@ -157,7 +157,7 @@ static THD_FUNCTION(SetPath, arg) {
     	acc_z_buffer[buffer_place]= get_acc(Z_AXIS)-offset_z ;
 
     	//Increment position on the buffer
-    	if(buffer_place < 10){
+    	if(buffer_place < IMU_BUFFER_SIZE){
     		++buffer_place;
     	}
     	else{
