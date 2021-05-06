@@ -127,13 +127,21 @@ static THD_FUNCTION(SetPath, arg) {
     int16_t acc_y_calibrated;
     int16_t acc_z_calibrated;
 
+    int16_t acc_x_sum = 0;
+    int16_t acc_y_sum = 0;
+    int16_t acc_z_sum = 0;
+
+    //Initialized to zero to prevent movement on first sampling cycle
+    int16_t acc_x_averaged = 0;
+    int16_t acc_y_averaged = 0;
+    int16_t acc_z_averaged = 0;
+
     int prox_front_left;
     int prox_front_right;
     int prox_diag_left;
     int prox_diag_right;
 
-    int top_counter = 0;
-    bool moving = 1;
+    int sampling_counter = 0;
 
     int8_t bearing_prox;
     int8_t bearing_imu;
@@ -179,30 +187,35 @@ static THD_FUNCTION(SetPath, arg) {
         //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
         //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d \r\n", prox_right);
 
-//Set motor speeds accordingly
-        //Case top reached
-        //Fix the condition to have a more acceptable threshold
-         if(moving && fabs(acc_x_calibrated) <= IMU_TOP_THRESHOLD &&
-        	fabs(acc_y_calibrated) <= IMU_TOP_THRESHOLD &&
-			fabs(acc_z_calibrated) <= IMU_TOP_THRESHOLD){ //Minus because z axis points up
-        	 ++top_counter;
-         }
-         else if(top_counter > 0){
-        	 --top_counter;
-         }
+    	if(sampling_counter < IMU_SAMPLE_SIZE){
+    		++sampling_counter;
+    		acc_x_sum += acc_x_calibrated;
+    		acc_y_sum += acc_y_calibrated;
+    		acc_z_sum += acc_z_calibrated;
+    	}
+    	else{
+    		sampling_counter = 0;
 
-         chprintf((BaseSequentialStream *)&SD3, "Counter = %d", top_counter);
+    		acc_x_averaged = acc_x_sum / IMU_SAMPLE_SIZE;
+    		acc_y_averaged = acc_y_sum / IMU_SAMPLE_SIZE;
+    		acc_z_averaged = acc_z_sum / IMU_SAMPLE_SIZE;
 
-         if(moving && top_counter == 10)//Magic
-        	 moving = 0;
+    		acc_x_sum = 0;
+    		acc_y_sum = 0;
+    		acc_z_sum = 0;
 
-         if(!moving && top_counter == 0)
-        	 moving = 1;
+    		chprintf((BaseSequentialStream *)&SD3, "Acc_X_AVG = %d \r\n", acc_x_averaged);
+    		chprintf((BaseSequentialStream *)&SD3, "Acc_Y_AVG = %d \r\n", acc_y_averaged);
+    		chprintf((BaseSequentialStream *)&SD3, "Acc_Z_AVG = %d \r\n", acc_z_averaged);
+    	}
 
-         if(!moving){
-        	 left_motor_set_speed(0);
-        	 right_motor_set_speed(0);
-         }
+    	if(fabs(acc_x_averaged) <= IMU_TOP_THRESHOLD &&
+            	fabs(acc_y_averaged) <= IMU_TOP_THRESHOLD &&
+    			fabs(acc_z_averaged) <= IMU_TOP_THRESHOLD){
+    		left_motor_set_speed(0);
+    		right_motor_set_speed(0);
+    		chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
+    	}
          else{
         	 bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
