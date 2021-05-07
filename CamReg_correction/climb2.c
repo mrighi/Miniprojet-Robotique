@@ -13,7 +13,7 @@
 
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
-//Convention used throughout: trigonometric direction
+//Convention used throughout: clockwise direction
 // <=100 = left, 0 = straight, >=-100 = right
 
 int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
@@ -62,10 +62,16 @@ int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_le
 	}
 
 	if(prox_front_left >= PROX_THRESHOLD){ //If obstacle on left then turn right
-		return -prox_front_left*100/PROX_MAX;
+		return prox_front_left*100/PROX_MAX;
 	}
 	if(prox_front_right >= PROX_THRESHOLD){ //If obstacle on right turn then left
-		return prox_front_right*100/PROX_MAX;
+		return -prox_front_right*100/PROX_MAX;
+	}
+	if(prox_diag_left >= PROX_THRESHOLD){
+		return prox_diag_left*100/(2*PROX_MAX); //Smaller angle correction for 45° sensors
+	}
+	if(prox_diag_right >= PROX_THRESHOLD){
+		return -prox_diag_right*100/(2*PROX_MAX);
 	}
 	return 0;
 }
@@ -139,6 +145,8 @@ static THD_FUNCTION(SetPath, arg) {
     int prox_front_right;
     int prox_diag_left;
     int prox_diag_right;
+    int prox_left;
+    int prox_right;
 
     int16_t bearing_prox;
     int16_t bearing_imu;
@@ -187,25 +195,25 @@ static THD_FUNCTION(SetPath, arg) {
     	acc_z_averaged = acc_z_averaged / IMU_BUFFER_SIZE_Z;
 
     	//Print averaged accelerometer values:
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
 
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
     	prox_front_right = get_calibrated_prox(PROX_FRONT_RIGHT);
     	prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
     	prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
-    	//prox_left = get_calibrated_prox(PROX_LEFT);
-        //prox_right = get_calibrated_prox(PROX_RIGHT);
+    	prox_left = get_calibrated_prox(PROX_LEFT);
+        prox_right = get_calibrated_prox(PROX_RIGHT);
 
         //Print proximity values
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d \r\n", prox_front_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d \r\n", prox_front_right);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d \r\n", prox_diag_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d \r\n", prox_diag_right);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d \r\n", prox_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d \r\n", prox_right);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d", prox_front_left);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d", prox_front_right);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d", prox_diag_left);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d", prox_diag_right);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d", prox_left);
+        chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d", prox_right);
 
     	if((acc_x_averaged < IMU_TOP_MAX_X && acc_x_averaged > IMU_TOP_MIN_X) &&
     		(acc_y_averaged < IMU_TOP_MAX_Y && acc_y_averaged > IMU_TOP_MIN_Y) &&
@@ -224,7 +232,7 @@ static THD_FUNCTION(SetPath, arg) {
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
         	 bearing_imu = imu_bearing(acc_x_averaged, acc_y_averaged, acc_z_averaged);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
-        	 bearing = (1-bearing_prox)*bearing_imu + bearing_prox;
+        	 bearing = (1-bearing_prox/100)*bearing_imu + bearing_prox;
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
         	 move(bearing);
          }
