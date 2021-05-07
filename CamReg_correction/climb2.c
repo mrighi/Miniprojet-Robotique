@@ -14,8 +14,8 @@
 
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
-//Convention used throughout: clockwise direction
-// (0,100] = left, 0 = straight, [-100, 0) = right
+//Convention used throughout: trigonometric direction
+// (0,100] = right, 0 = straight, [-100, 0) = left
 
 int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 	//Limit cases to avoid division by zero
@@ -24,11 +24,11 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 	}
 	if(acc_y < IMU_TOP_MAX_Y && acc_z > IMU_TOP_MAX_Z){
 		if(acc_x > 0)
-			return 100;
-		if(acc_x < 0)
 			return -100;
+		if(acc_x < 0)
+			return 100;
 	}
-	return (int16_t)(atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
+	return (int16_t)(atan2f(acc_x, -acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
 }
 
 /*int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
@@ -78,7 +78,7 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 }*/
 
 int16_t prox_bearing(uint16_t dist_mm){
-	static bool direction = 0; //0 = left, 1= right
+	static bool direction = 0; //0 = left, 1= right //CHECK THIS
 	static int toggle_direction = 0;
 
 	if(dist_mm <= 100){
@@ -110,8 +110,8 @@ void move (int16_t bearing){
 //	chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 //	chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 
-	left_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
-	right_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+	left_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+	right_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 }
 
 static THD_WORKING_AREA(waSetPath, 512);
