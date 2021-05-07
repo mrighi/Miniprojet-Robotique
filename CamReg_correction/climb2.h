@@ -26,7 +26,13 @@
 #define IMU_MAX						2*g
 #define IMU_OFFSET_MAX				-17000
 #define IMU_OFFSET_MIN				-15000
-#define IMU_TOP_THRESHOLD			150
+
+#define IMU_TOP_MAX_X				400
+#define IMU_TOP_MIN_X				-400
+#define IMU_TOP_MAX_Y				400
+#define IMU_TOP_MIN_Y				-900
+#define IMU_TOP_MAX_Z				400
+#define IMU_TOP_MIN_Z				-400
 
 #define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000
@@ -40,11 +46,11 @@
 //#define COEFF_PROX					0.7		//Determined empirically
 
 
-int8_t imu_bearing(int16_t acc_x, int16_t acc_y);
+int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z);
 
-int8_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right);
+int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right);
 
-void move(int8_t bearing);
+void move(int16_t bearing);
 
 void set_path_start(void);
 
