@@ -8,17 +8,16 @@
 #include "memory_protection.h"
 #include <usbcfg.h>
 #include <main.h>
+
 #include <motors.h>
 #include <sensors/proximity.h>
 #include <sensors/imu.h>
+#include <sensors/VL53L0X/VL53L0X.h> //ToF
 //#include <camera/po8030.h>
 //#include <i2c_bus.h>
 //#include <chprintf.h>
 
 #include <climb2.h>
-
-//#include <pi_regulator.h>
-//#include <process_image.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
@@ -64,6 +63,9 @@ int main(void){
 
 	//IR sensors initialization
 	proximity_start();
+
+	//ToF sensor initialization
+	void VL53L0X_start();
 
 	//Start the SetPath thread
 	set_path_start();

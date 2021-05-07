@@ -48,7 +48,8 @@
 
 int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z);
 
-int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right);
+//int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right);
+int16_t prox_bearing(uint16_t dist_mm);
 
 void move(int16_t bearing);
 

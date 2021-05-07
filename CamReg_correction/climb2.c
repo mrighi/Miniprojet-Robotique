@@ -9,12 +9,13 @@
 #include <motors.h>
 #include <sensors/imu.h>
 #include <sensors/proximity.h>
+#include <sensors/VL53L0X/VL53L0X.h> //ToF
 #include <climb2.h>
 
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
 //Convention used throughout: clockwise direction
-// <=100 = left, 0 = straight, >=-100 = right
+// (0,100] = left, 0 = straight, [-100, 0) = right
 
 int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 	//Limit cases to avoid division by zero
@@ -30,7 +31,7 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 	return (int16_t)(atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
 }
 
-int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
+/*int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
 	static bool direction_toggle = 0; //Arbitrary direction if all sensors are blocked
 	static bool inc_toggle = 1; //Used in handling of direction toggle
 
@@ -73,6 +74,23 @@ int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_le
 	if(prox_diag_right >= PROX_THRESHOLD){
 		return -prox_diag_right*100/(2*PROX_MAX);
 	}
+	return 0;
+}*/
+
+int16_t prox_bearing(uint16_t dist_mm){
+	static bool direction = 0; //0 = left, 1= right
+	static int toggle_direction = 0;
+
+	if(dist_mm <= 100){
+		if(!toggle_direction){
+			toggle_direction = 1;
+		}
+		return (1-2*direction)*100*(1-dist_mm/100); //Linear correction
+	}
+	if(toggle_direction){
+		++toggle_direction;
+	}
+
 	return 0;
 }
 
@@ -148,6 +166,8 @@ static THD_FUNCTION(SetPath, arg) {
     int prox_left;
     int prox_right;
 
+    uint16_t ToF_dist_mm;
+
     int16_t bearing_prox;
     int16_t bearing_imu;
     int16_t bearing ;
@@ -166,6 +186,7 @@ static THD_FUNCTION(SetPath, arg) {
     	acc_z_buffer[buffer_place_z]= get_acc(Z_AXIS)-offset_z ;
     	//chprintf((BaseSequentialStream *)&SD3, "acc_y = %d", get_acc(Y_AXIS));
     	//chprintf((BaseSequentialStream *)&SD3, "offy = %d", offset_y);
+
     	//Increment position on the buffer
     	if(buffer_place_xy < IMU_BUFFER_SIZE_XY){
     		++buffer_place_xy;
@@ -173,6 +194,7 @@ static THD_FUNCTION(SetPath, arg) {
     	else{
     		buffer_place_xy = 0;
     	}
+
     	if(buffer_place_z < IMU_BUFFER_SIZE_Z){
     	    ++buffer_place_z;
     	}
@@ -181,6 +203,7 @@ static THD_FUNCTION(SetPath, arg) {
     	}
 
     	//Calculate running average for acceleration values
+    	//CORRECT THIS SO IT DOESN'T CALCULATE THE FULL SUM EACH TIME
     	for(int i=0; i<IMU_BUFFER_SIZE_XY; ++i){
     		acc_x_averaged += acc_x_buffer[i];
     		acc_y_averaged += acc_y_buffer[i];
@@ -208,12 +231,14 @@ static THD_FUNCTION(SetPath, arg) {
         prox_right = get_calibrated_prox(PROX_RIGHT);
 
         //Print proximity values
-        chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d", prox_front_left);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d", prox_front_right);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d", prox_diag_left);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d", prox_diag_right);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d", prox_left);
-        chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d", prox_right);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d", prox_front_left);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d", prox_front_right);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d", prox_diag_left);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d", prox_diag_right);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d", prox_left);
+        //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d", prox_right);
+
+        ToF_dist_mm = VL53L0X_get_dist_mm();
 
     	if((acc_x_averaged < IMU_TOP_MAX_X && acc_x_averaged > IMU_TOP_MIN_X) &&
     		(acc_y_averaged < IMU_TOP_MAX_Y && acc_y_averaged > IMU_TOP_MIN_Y) &&
@@ -228,7 +253,8 @@ static THD_FUNCTION(SetPath, arg) {
     	}
 
          else{
-        	 bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
+        	 //bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
+        	 bearing_prox = prox_bearing(ToF_dist_mm);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
         	 bearing_imu = imu_bearing(acc_x_averaged, acc_y_averaged, acc_z_averaged);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
