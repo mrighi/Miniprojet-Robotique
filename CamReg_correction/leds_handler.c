@@ -15,6 +15,8 @@
 #include <leds_handler.h>
 
 void leds_handler(int state, int16_t bearing){
+	clear_leds();
+
 	switch(state){
 	case 0: //Calibration state
 		set_rgb_led(LED2, -1, 0, 0); //Light up red
@@ -23,12 +25,10 @@ void leds_handler(int state, int16_t bearing){
 		set_rgb_led(LED8, -1, 0, 0);
 		break;
 	case 1: //Movement state
-		if(bearing == 0)
-			set_led(LED1, 1);
-		if(bearing < 0)
-			set_led(LED3, 1);
-		if(bearing > 0)
-			set_led(LED7, 1);
+		if(bearing <= 0)
+			set_rgb_led(LED2, 0, 0, -1); //Light up blue
+		if(bearing >= 0)
+			set_rgb_led(LED8, 0, 0, -1);
 		break;
 	case 2: //Top reached state
 		set_rgb_led(LED2, 0, -1, 0); //Light up green

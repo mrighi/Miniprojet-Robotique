@@ -1,7 +1,7 @@
 #ifndef CLIMB2_H_
 #define CLIMB2_H_
 
-#define LEDS_BLINK_PERIOD			50		//2 Hz
+#define LEDS_BLINK_PERIOD			20		//5 Hz
 
 #define PROX_FRONT_RIGHT 			0
 #define PROX_FRONT_LEFT 			7
