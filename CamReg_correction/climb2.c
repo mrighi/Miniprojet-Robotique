@@ -81,14 +81,13 @@ int16_t prox_bearing(uint16_t dist_mm){
 	static bool direction = 0; //0 = left, 1= right //CHECK THIS
 	static bool toggle_direction = 0;
 
-	static bearing_prox = 0;
+	static int16_t bearing_prox = 0;
 
 	if(dist_mm <= 100){
 		if(!toggle_direction){
 			toggle_direction = 1;
 		}
-		bearing_prox += (1-2*direction)*2*(1-dist_mm/100); //Linear correction
-		chprintf((BaseSequentialStream *)&SD3, "Bearing_prox = %d ", bearing_prox);
+		bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction
 		return bearing_prox;
 	}
 	if(toggle_direction){
@@ -98,9 +97,10 @@ int16_t prox_bearing(uint16_t dist_mm){
 	if(bearing_prox > 0){
 		bearing_prox -= PROX_DEC_COEFF;
 	}
-
+	if(bearing_prox < 0)
+		bearing_prox = 0;
 	chprintf((BaseSequentialStream *)&SD3, "Bearing_prox = %d ", bearing_prox);
-	return 0;
+	return bearing_prox;
 }
 
 //Basic PID

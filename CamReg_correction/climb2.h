@@ -37,11 +37,11 @@
 #define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000
 #define PROX_THRESHOLD				60 		//Determined empirically
-#define PROX_DEC_COEFF				1
+#define PROX_DEC_COEFF				2
 
 #define Kp							2
 #define Kd							1
-#define Ki							0
+#define Ki							1
 
 //#define COEFF_IMU					0.3		//Determined empirically
 //#define COEFF_PROX					0.7		//Determined empirically
