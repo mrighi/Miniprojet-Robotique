@@ -37,6 +37,7 @@
 #define PROX_OFFSET_MAX				500
 #define PROX_MAX					1000
 #define PROX_THRESHOLD				60 		//Determined empirically
+#define PROX_DEC_COEFF				1
 
 #define Kp							2
 #define Kd							1
