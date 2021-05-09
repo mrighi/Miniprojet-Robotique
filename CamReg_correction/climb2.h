@@ -14,7 +14,7 @@
 
 #define g							9.81
 
-#define SPEED_BASE					300		//Base movement speed
+#define SPEED_BASE					500		//Base movement speed
 #define SPEED_INC_COEFF				1
 #define SPEED_MAX_COEFF				0.003 	//Limit max speed of the robot
 

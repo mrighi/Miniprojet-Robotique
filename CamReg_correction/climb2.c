@@ -85,10 +85,10 @@ int16_t prox_bearing(uint16_t dist_mm){
 		if(!toggle_direction){
 			toggle_direction = 1;
 		}
-		return (1-2*direction)*100*(1-dist_mm/100); //Linear correction
+		return (1-2*direction)*200*(1-dist_mm/100); //Linear correction
 	}
 	if(toggle_direction){
-		++direction;
+		direction = !direction;
 		toggle_direction = 0;
 	}
 
@@ -149,9 +149,9 @@ static THD_FUNCTION(SetPath, arg) {
 
 //Declaration of variables
 
-    int16_t acc_x_buffer[IMU_BUFFER_SIZE_XY];
-    int16_t acc_y_buffer[IMU_BUFFER_SIZE_XY];
-    int16_t acc_z_buffer[IMU_BUFFER_SIZE_Z];
+    int16_t acc_x_buffer[IMU_BUFFER_SIZE_XY] = {0};
+    int16_t acc_y_buffer[IMU_BUFFER_SIZE_XY] = {0};
+    int16_t acc_z_buffer[IMU_BUFFER_SIZE_Z] = {0};
 
     int buffer_place_xy = 0;
     int buffer_place_z = 0;
@@ -198,25 +198,28 @@ static THD_FUNCTION(SetPath, arg) {
     	//chprintf((BaseSequentialStream *)&SD3, "acc_y = %d", get_acc(Y_AXIS));
     	//chprintf((BaseSequentialStream *)&SD3, "offy = %d", offset_y);
 
-    	//Increment position on the buffers
-    	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ;
-    	chprintf((BaseSequentialStream *)&SD3, "Buffer place XY = %d ", buffer_place_xy);
-
-    	buffer_place_z = (buffer_place_z + 1) % IMU_BUFFER_SIZE_Z ;
-        chprintf((BaseSequentialStream *)&SD3, "Buffer place Z = %d ", buffer_place_z);
-
     	acc_x_sum += acc_x_buffer[buffer_place_xy];
-    	acc_x_sum += acc_y_buffer[buffer_place_xy];
-    	acc_x_sum += acc_z_buffer[buffer_place_z];
+    	acc_y_sum += acc_y_buffer[buffer_place_xy];
+    	acc_z_sum += acc_z_buffer[buffer_place_z];
 
     	acc_x_averaged = acc_x_sum / IMU_BUFFER_SIZE_XY;
     	acc_y_averaged = acc_y_sum / IMU_BUFFER_SIZE_XY;
     	acc_z_averaged = acc_z_sum / IMU_BUFFER_SIZE_Z;
 
+    	//Increment position on the buffers
+    	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ;
+    	//chprintf((BaseSequentialStream *)&SD3, "Buffer place XY = %d ", buffer_place_xy);
+
+    	buffer_place_z = (buffer_place_z + 1) % IMU_BUFFER_SIZE_Z ;
+    	//chprintf((BaseSequentialStream *)&SD3, "Buffer place Z = %d ", buffer_place_z);
+
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc = %d", acc_x_buffer[buffer_place_xy]);
+    	//chprintf((BaseSequentialStream *)&SD3, "AccSum = %d", acc_x_sum);
+
     	//Print averaged accelerometer values:
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
 
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
@@ -235,6 +238,7 @@ static THD_FUNCTION(SetPath, arg) {
         //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d", prox_right);
 
         ToF_dist_mm = VL53L0X_get_dist_mm();
+        chprintf((BaseSequentialStream *)&SD3, "TofDist = %d", ToF_dist_mm);
 
     	if((acc_x_averaged < IMU_TOP_MAX_X && acc_x_averaged > IMU_TOP_MIN_X) &&
     		(acc_y_averaged < IMU_TOP_MAX_Y && acc_y_averaged > IMU_TOP_MIN_Y) &&
