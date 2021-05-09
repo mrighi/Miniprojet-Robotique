@@ -30,6 +30,7 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 		if(acc_x < 0)
 			return 100;
 	}
+	//Analog correction value reduces overshoot
 	return (int16_t)(-atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
 }
 
@@ -45,7 +46,8 @@ int16_t prox_bearing(uint16_t dist_mm){
 			switch_direction_flag = 1; //Once obstacle is avoided, direction variable is switched
 			clear = 0;
 		}
-		bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction normalized to +-100
+		bearing_prox = (1-2*direction)*100; //Constant correction
+		//bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction normalized to +-100
 		return bearing_prox;
 	}
 
@@ -81,6 +83,9 @@ void move (int16_t bearing){
 	int16_t delta = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
 
 	bearing_prev = bearing;
+
+	//Test how far this is from [-100, 100]
+	chprintf((BaseSequentialStream *)&SD3, "delta = %d ", delta);
 
 	left_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 	right_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
