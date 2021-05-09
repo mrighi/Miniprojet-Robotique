@@ -28,7 +28,7 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 		if(acc_x < 0)
 			return 100;
 	}
-	return (int16_t)(atan2f(acc_x, -acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
+	return (int16_t)(-atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
 }
 
 /*int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
@@ -79,7 +79,7 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 
 int16_t prox_bearing(uint16_t dist_mm){
 	static bool direction = 0; //0 = left, 1= right //CHECK THIS
-	static int toggle_direction = 0;
+	static bool toggle_direction = 0;
 
 	if(dist_mm <= 100){
 		if(!toggle_direction){
@@ -88,7 +88,8 @@ int16_t prox_bearing(uint16_t dist_mm){
 		return (1-2*direction)*100*(1-dist_mm/100); //Linear correction
 	}
 	if(toggle_direction){
-		++toggle_direction;
+		++direction;
+		toggle_direction = 0;
 	}
 
 	return 0;
@@ -155,6 +156,12 @@ static THD_FUNCTION(SetPath, arg) {
     int buffer_place_xy = 0;
     int buffer_place_z = 0;
 
+    //Separate variable for sum allows acc_..._averaged to be on 16 bits
+    int32_t acc_x_sum=0;
+    int32_t acc_y_sum=0;
+    int32_t acc_z_sum=0;
+
+    //Using a separate variable for the sum, should function on 16 bits
     int32_t acc_x_averaged=0;
     int32_t acc_y_averaged=0;
     int32_t acc_z_averaged=0;
@@ -187,40 +194,27 @@ static THD_FUNCTION(SetPath, arg) {
     	//chprintf((BaseSequentialStream *)&SD3, "acc_y = %d", get_acc(Y_AXIS));
     	//chprintf((BaseSequentialStream *)&SD3, "offy = %d", offset_y);
 
-    	//Increment position on the buffer
-    	if(buffer_place_xy < IMU_BUFFER_SIZE_XY){
-    		++buffer_place_xy;
-    	}
-    	else{
-    		buffer_place_xy = 0;
-    	}
+    	//Increment position on the buffers
+    	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ;
+    	chprintf((BaseSequentialStream *)&SD3, "Buffer place XY = %d ", buffer_place_xy);
 
-    	if(buffer_place_z < IMU_BUFFER_SIZE_Z){
-    	    ++buffer_place_z;
-    	}
-    	else{
-    		buffer_place_z = 0;
-    	}
+    	buffer_place_z = (buffer_place_z + 1) % IMU_BUFFER_SIZE_Z ;
+        chprintf((BaseSequentialStream *)&SD3, "Buffer place Z = %d ", buffer_place_z);
 
     	//Calculate running average for acceleration values
-    	//CORRECT THIS SO IT DOESN'T CALCULATE THE FULL SUM EACH TIME
-    	for(int i=0; i<IMU_BUFFER_SIZE_XY; ++i){
-    		acc_x_averaged += acc_x_buffer[i];
-    		acc_y_averaged += acc_y_buffer[i];
-    	}
-    	for(int i=0; i<IMU_BUFFER_SIZE_Z; ++i){
-    		acc_z_averaged += acc_z_buffer[i];
-    	}
+        //Saved sum variable means that the full sum isn't calculated at each cycle
+    	acc_x_sum = acc_x_sum + acc_x_buffer[buffer_place_xy] - acc_x_buffer[(buffer_place_xy+1)%IMU_BUFFER_SIZE_XY];
+    	acc_y_sum = acc_y_sum + acc_y_buffer[buffer_place_xy] - acc_y_buffer[(buffer_place_xy+1)%IMU_BUFFER_SIZE_XY];
+    	acc_z_sum = acc_z_sum + acc_z_buffer[buffer_place_z] - acc_z_buffer[(buffer_place_z+1)%IMU_BUFFER_SIZE_Z];
 
-
-    	acc_x_averaged = acc_x_averaged / IMU_BUFFER_SIZE_XY;
-    	acc_y_averaged = acc_y_averaged / IMU_BUFFER_SIZE_XY;
-    	acc_z_averaged = acc_z_averaged / IMU_BUFFER_SIZE_Z;
+    	acc_x_averaged = acc_x_sum / IMU_BUFFER_SIZE_XY;
+    	acc_y_averaged = acc_y_sum / IMU_BUFFER_SIZE_XY;
+    	acc_z_averaged = acc_z_sum / IMU_BUFFER_SIZE_Z;
 
     	//Print averaged accelerometer values:
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
 
     	//Collect the proximity values
     	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
