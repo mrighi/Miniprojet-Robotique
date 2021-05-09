@@ -10,6 +10,8 @@
 #include <sensors/imu.h>
 #include <sensors/proximity.h>
 #include <sensors/VL53L0X/VL53L0X.h> //ToF
+#include <leds_handler.h>
+
 #include <climb2.h>
 
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
@@ -31,79 +33,43 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z){
 	return (int16_t)(-atan2f(acc_x, acc_y)*200.0f/M_PI); //IS THIS CALCULATED IN FLOAT ?
 }
 
-/*int16_t prox_bearing(int prox_front_left, int prox_front_right, int prox_diag_left, int prox_diag_right){
-	static bool direction_toggle = 0; //Arbitrary direction if all sensors are blocked
-	static bool inc_toggle = 1; //Used in handling of direction toggle
-
-	if(prox_front_left >= PROX_THRESHOLD && prox_front_right >= PROX_THRESHOLD){
-		if(prox_diag_left >= PROX_THRESHOLD && prox_diag_right >= PROX_THRESHOLD){
-			//In this case the robot makes a sharp turn in an arbitrary direction
-			//SHARP turn : returns +-1 as opposed to <1
-			//Direction is toggled to prevent back-and-forth loops improve climb efficiency (guess right turn as often as left)
-			inc_toggle=1;
-			return (1-2*direction_toggle)*100; //+100 or -100
-		}
-
-		if(inc_toggle){ //Increment the direction toggle if head-on collision avoided
-			inc_toggle=0;
-			++direction_toggle;
-		}
-
-		if(prox_diag_left >= PROX_THRESHOLD){
-			return -prox_diag_left*100/(2*PROX_MAX); //Smaller angle correction for 45° sensors
-		}
-		if(prox_diag_right >= PROX_THRESHOLD){
-			return prox_diag_right*100/(2*PROX_MAX);
-		}
-	}
-
-	if(inc_toggle){ //Increment the direction toggle if head-on collision avoided
-		inc_toggle=0;
-		++direction_toggle;
-	}
-
-	if(prox_front_left >= PROX_THRESHOLD){ //If obstacle on left then turn right
-		return prox_front_left*100/PROX_MAX;
-	}
-	if(prox_front_right >= PROX_THRESHOLD){ //If obstacle on right turn then left
-		return -prox_front_right*100/PROX_MAX;
-	}
-	if(prox_diag_left >= PROX_THRESHOLD){
-		return prox_diag_left*100/(2*PROX_MAX); //Smaller angle correction for 45° sensors
-	}
-	if(prox_diag_right >= PROX_THRESHOLD){
-		return -prox_diag_right*100/(2*PROX_MAX);
-	}
-	return 0;
-}*/
-
 int16_t prox_bearing(uint16_t dist_mm){
-	static bool direction = 0; //0 = left, 1= right //CHECK THIS
-	static bool toggle_direction = 0;
+	static bool direction = 0; //0 = left, 1 = right
+	static bool switch_direction_flag = 0;
+	static bool clear = 1; //0 = obstacle present
 
 	static int16_t bearing_prox = 0;
 
-	if(dist_mm <= 100){
-		if(!toggle_direction){
-			toggle_direction = 1;
+	if(dist_mm <= 100){ //Obstacle detected
+		if(!switch_direction_flag){
+			switch_direction_flag = 1; //Once obstacle is avoided, direction variable is switched
+			clear = 0;
 		}
-		bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction
+		bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction normalized to +-100
 		return bearing_prox;
 	}
-	if(toggle_direction){
-		direction = !direction;
-		toggle_direction = 0;
+
+	if(clear){ //Reduce operations when clear
+		return 0;
 	}
-	if(bearing_prox > 0){
-		bearing_prox -= PROX_DEC_COEFF;
+
+	else{
+		if(switch_direction_flag){ //Once obstacle is avoided, direction variable is switched
+			direction = !direction;
+			switch_direction_flag = 0;
+		}
+
+		bearing_prox = (1-2*direction)*(fabs(bearing_prox)-1); //Decrement bearing_prox
+
+		if(fabs(bearing_prox) <= PROX_DEC_COEFF){
+			clear = 1;
+			bearing_prox = 0;
+		}
+		return bearing_prox;
 	}
-	if(bearing_prox < 0)
-		bearing_prox = 0;
-	chprintf((BaseSequentialStream *)&SD3, "Bearing_prox = %d ", bearing_prox);
-	return bearing_prox;
 }
 
-//Basic PID
+//PID regulator
 void move (int16_t bearing){
 	static int16_t bearing_prev = 0;
 	static int16_t bearingI = 0;
@@ -115,12 +81,12 @@ void move (int16_t bearing){
 	int16_t delta = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
 
 	bearing_prev = bearing;
-//	chprintf((BaseSequentialStream *)&SD3, "Delta = %d", delta);
-//	chprintf((BaseSequentialStream *)&SD3, "Speed_L = %d", SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
-//	chprintf((BaseSequentialStream *)&SD3, "Speed_R = %d", SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 
 	left_motor_set_speed(SPEED_BASE - SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
 	right_motor_set_speed(SPEED_BASE + SPEED_MAX_COEFF*MOTOR_SPEED_LIMIT*delta);
+
+	blink_leds(1, delta, LEDS_BLINK_PERIOD);
+	//Led handling done here because real delta correction value does not necessarily correspond to bearing
 }
 
 static THD_WORKING_AREA(waSetPath, 512);
@@ -136,22 +102,14 @@ static THD_FUNCTION(SetPath, arg) {
 
 //Calibration of sensors
     do{//Protection in case of calibration with the robot tilted
+    	blink_leds(0, 0, LEDS_BLINK_PERIOD);
+
     	calibrate_acc(); //Collects samples for calibration
+
     	offset_x = get_acc_offset(X_AXIS);
     	offset_y = get_acc_offset(Y_AXIS);
     	offset_z = get_acc_offset(Z_AXIS);
-    	//chprintf((BaseSequentialStream *)&SD3, "Offset_Z = %d \r\n", offset_z);
-    	chprintf((BaseSequentialStream *)&SD3, "CalibratingOff...");
     }while(offset_z < IMU_OFFSET_MAX || offset_z > IMU_OFFSET_MIN);//Calibrating
-
-    //May not be necessary because the offset is variable and depends on the ambient light
-    do{//Protection in case of calibration with the sensors covered
-    	calibrate_ir();
-    	chprintf((BaseSequentialStream *)&SD3, "CalibratingIR...");
-    }while(get_prox(PROX_FRONT_LEFT)-get_calibrated_prox(PROX_FRONT_LEFT) >= PROX_OFFSET_MAX ||
-    		get_prox(PROX_FRONT_RIGHT)-get_calibrated_prox(PROX_FRONT_RIGHT) >= PROX_OFFSET_MAX ||
-			get_prox(PROX_DIAG_LEFT)-get_calibrated_prox(PROX_DIAG_LEFT) >= PROX_OFFSET_MAX ||
-			get_prox(PROX_DIAG_RIGHT)-get_calibrated_prox(PROX_DIAG_RIGHT) >= PROX_OFFSET_MAX);
 
     systime_t time;
 
@@ -169,17 +127,9 @@ static THD_FUNCTION(SetPath, arg) {
     int32_t acc_y_sum=0;
     int32_t acc_z_sum=0;
 
-    //Using a separate variable for the sum, should function on 16 bits
-    int32_t acc_x_averaged=0;
-    int32_t acc_y_averaged=0;
-    int32_t acc_z_averaged=0;
-
-    int prox_front_left;
-    int prox_front_right;
-    int prox_diag_left;
-    int prox_diag_right;
-    int prox_left;
-    int prox_right;
+    int16_t acc_x_averaged=0;
+    int16_t acc_y_averaged=0;
+    int16_t acc_z_averaged=0;
 
     uint16_t ToF_dist_mm;
 
@@ -203,8 +153,6 @@ static THD_FUNCTION(SetPath, arg) {
     	acc_x_buffer[buffer_place_xy]= get_acc(X_AXIS)-offset_x ;
     	acc_y_buffer[buffer_place_xy]= get_acc(Y_AXIS)-offset_y ;
     	acc_z_buffer[buffer_place_z]= get_acc(Z_AXIS)-offset_z ;
-    	//chprintf((BaseSequentialStream *)&SD3, "acc_y = %d", get_acc(Y_AXIS));
-    	//chprintf((BaseSequentialStream *)&SD3, "offy = %d", offset_y);
 
     	acc_x_sum += acc_x_buffer[buffer_place_xy];
     	acc_y_sum += acc_y_buffer[buffer_place_xy];
@@ -214,46 +162,26 @@ static THD_FUNCTION(SetPath, arg) {
     	acc_y_averaged = acc_y_sum / IMU_BUFFER_SIZE_XY;
     	acc_z_averaged = acc_z_sum / IMU_BUFFER_SIZE_Z;
 
+    	//Print averaged accelerometer values:
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
+    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
+
     	//Increment position on the buffers
     	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ;
-    	//chprintf((BaseSequentialStream *)&SD3, "Buffer place XY = %d ", buffer_place_xy);
-
     	buffer_place_z = (buffer_place_z + 1) % IMU_BUFFER_SIZE_Z ;
-    	//chprintf((BaseSequentialStream *)&SD3, "Buffer place Z = %d ", buffer_place_z);
-
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc = %d", acc_x_buffer[buffer_place_xy]);
-    	//chprintf((BaseSequentialStream *)&SD3, "AccSum = %d", acc_x_sum);
-
-    	//Print averaged accelerometer values:
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
-    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
-
-    	//Collect the proximity values
-    	prox_front_left = get_calibrated_prox(PROX_FRONT_LEFT);
-    	prox_front_right = get_calibrated_prox(PROX_FRONT_RIGHT);
-    	prox_diag_left = get_calibrated_prox(PROX_DIAG_LEFT);
-    	prox_diag_right = get_calibrated_prox(PROX_DIAG_RIGHT);
-    	prox_left = get_calibrated_prox(PROX_LEFT);
-        prox_right = get_calibrated_prox(PROX_RIGHT);
-
-        //Print proximity values
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_FL = %d", prox_front_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_FR = %d", prox_front_right);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_DL = %d", prox_diag_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_DR = %d", prox_diag_right);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_L = %d", prox_left);
-        //chprintf((BaseSequentialStream *)&SD3, "Prox_R = %d", prox_right);
 
         ToF_dist_mm = VL53L0X_get_dist_mm();
-        chprintf((BaseSequentialStream *)&SD3, "TofDist = %d", ToF_dist_mm);
 
+//Movement handling
     	if((acc_x_averaged < IMU_TOP_MAX_X && acc_x_averaged > IMU_TOP_MIN_X) &&
     		(acc_y_averaged < IMU_TOP_MAX_Y && acc_y_averaged > IMU_TOP_MIN_Y) &&
-    	    (acc_z_averaged < IMU_TOP_MAX_Z && acc_z_averaged > IMU_TOP_MIN_Z)){
+    	    (acc_z_averaged < IMU_TOP_MAX_Z && acc_z_averaged > IMU_TOP_MIN_Z)){ //Top reached
 
     		left_motor_set_speed(0);
     		right_motor_set_speed(0);
+
+    		blink_leds(2, 0, LEDS_BLINK_PERIOD);
 
     		chprintf((BaseSequentialStream *)&SD3, "TOP REACHED");
 
@@ -261,7 +189,6 @@ static THD_FUNCTION(SetPath, arg) {
     	}
 
          else{
-        	 //bearing_prox = prox_bearing(prox_front_left, prox_front_right, prox_diag_left, prox_diag_right);
         	 bearing_prox = prox_bearing(ToF_dist_mm);
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
         	 bearing_imu = imu_bearing(acc_x_averaged, acc_y_averaged, acc_z_averaged);

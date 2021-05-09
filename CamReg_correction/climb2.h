@@ -1,6 +1,8 @@
 #ifndef CLIMB2_H_
 #define CLIMB2_H_
 
+#define LEDS_BLINK_PERIOD			50		//2 Hz
+
 #define PROX_FRONT_RIGHT 			0
 #define PROX_FRONT_LEFT 			7
 #define PROX_DIAG_RIGHT				1
@@ -46,6 +48,8 @@
 //#define COEFF_IMU					0.3		//Determined empirically
 //#define COEFF_PROX					0.7		//Determined empirically
 
+
+void led_handler(int state, int16_t bearing);
 
 int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z);
 
