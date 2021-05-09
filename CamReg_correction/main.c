@@ -65,7 +65,7 @@ int main(void){
 	proximity_start();
 
 	//ToF sensor initialization
-	void VL53L0X_start();
+	VL53L0X_start();
 
 	//Start the SetPath thread
 	set_path_start();

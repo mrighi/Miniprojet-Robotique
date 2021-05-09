@@ -187,7 +187,11 @@ static THD_FUNCTION(SetPath, arg) {
     	//Done here because all variables are also printed
     	//Remove for final version
 
-    	//Calculated instantaneous acceleration values
+    	//Collect acceleration values
+    	acc_x_sum -= acc_x_buffer[buffer_place_xy];
+    	acc_y_sum -= acc_y_buffer[buffer_place_xy];
+    	acc_z_sum -= acc_z_buffer[buffer_place_z];
+
     	acc_x_buffer[buffer_place_xy]= get_acc(X_AXIS)-offset_x ;
     	acc_y_buffer[buffer_place_xy]= get_acc(Y_AXIS)-offset_y ;
     	acc_z_buffer[buffer_place_z]= get_acc(Z_AXIS)-offset_z ;
@@ -201,11 +205,9 @@ static THD_FUNCTION(SetPath, arg) {
     	buffer_place_z = (buffer_place_z + 1) % IMU_BUFFER_SIZE_Z ;
         chprintf((BaseSequentialStream *)&SD3, "Buffer place Z = %d ", buffer_place_z);
 
-    	//Calculate running average for acceleration values
-        //Saved sum variable means that the full sum isn't calculated at each cycle
-    	acc_x_sum = acc_x_sum + acc_x_buffer[buffer_place_xy] - acc_x_buffer[(buffer_place_xy+1)%IMU_BUFFER_SIZE_XY];
-    	acc_y_sum = acc_y_sum + acc_y_buffer[buffer_place_xy] - acc_y_buffer[(buffer_place_xy+1)%IMU_BUFFER_SIZE_XY];
-    	acc_z_sum = acc_z_sum + acc_z_buffer[buffer_place_z] - acc_z_buffer[(buffer_place_z+1)%IMU_BUFFER_SIZE_Z];
+    	acc_x_sum += acc_x_buffer[buffer_place_xy];
+    	acc_x_sum += acc_y_buffer[buffer_place_xy];
+    	acc_x_sum += acc_z_buffer[buffer_place_z];
 
     	acc_x_averaged = acc_x_sum / IMU_BUFFER_SIZE_XY;
     	acc_y_averaged = acc_y_sum / IMU_BUFFER_SIZE_XY;
