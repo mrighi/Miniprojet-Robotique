@@ -13,6 +13,7 @@
 #include <sensors/proximity.h>
 #include <sensors/imu.h>
 #include <sensors/VL53L0X/VL53L0X.h> //ToF
+#include <spi_comm.h>
 //#include <camera/po8030.h>
 //#include <i2c_bus.h>
 //#include <chprintf.h>
@@ -66,6 +67,8 @@ int main(void){
 
 	//ToF sensor initialization
 	VL53L0X_start();
+
+	spi_comm_start();
 
 	//Start the SetPath thread
 	set_path_start();

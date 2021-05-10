@@ -64,5 +64,6 @@ void blink_leds(int state, int16_t bearing, int blink_period_cycles){
 		else
 			clear_leds();
 	}
+	//chprintf((BaseSequentialStream *)&SD3, "Counter = %d", blink_counter);
 	++blink_counter;
 }

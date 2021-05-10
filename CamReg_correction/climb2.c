@@ -11,6 +11,7 @@
 #include <sensors/proximity.h>
 #include <sensors/VL53L0X/VL53L0X.h> //ToF
 #include <leds_handler.h>
+#include <leds.h>
 
 #include <climb2.h>
 
@@ -46,8 +47,8 @@ int16_t prox_bearing(uint16_t dist_mm){
 			switch_direction_flag = 1; //Once obstacle is avoided, direction variable is switched
 			clear = 0;
 		}
-		bearing_prox = (1-2*direction)*100; //Constant correction
-		//bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction normalized to +-100
+		//bearing_prox = (1-2*direction)*40; //Constant correction
+		bearing_prox = (1-2*direction)*100*(1-dist_mm/100); //Linear correction normalized to +-100
 		return bearing_prox;
 	}
 
@@ -61,7 +62,7 @@ int16_t prox_bearing(uint16_t dist_mm){
 			switch_direction_flag = 0;
 		}
 
-		bearing_prox = (1-2*direction)*(fabs(bearing_prox)-1); //Decrement bearing_prox
+		bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
 
 		if(fabs(bearing_prox) <= PROX_DEC_COEFF){
 			clear = 1;
@@ -168,9 +169,9 @@ static THD_FUNCTION(SetPath, arg) {
     	acc_z_averaged = acc_z_sum / IMU_BUFFER_SIZE_Z;
 
     	//Print averaged accelerometer values:
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
-    	chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_X = %d \r\n", acc_x_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Y = %d \r\n", acc_y_averaged);
+    	//chprintf((BaseSequentialStream *)&SD3, "Acc_Z = %d \r\n", acc_z_averaged);
 
     	//Increment position on the buffers
     	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ;
@@ -195,9 +196,9 @@ static THD_FUNCTION(SetPath, arg) {
 
          else{
         	 bearing_prox = prox_bearing(ToF_dist_mm);
-        	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %.4f \r\n", bearing_prox);
+        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_PROX = %d", bearing_prox);
         	 bearing_imu = imu_bearing(acc_x_averaged, acc_y_averaged, acc_z_averaged);
-        	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %.4f \r\n", bearing_imu);
+        	 chprintf((BaseSequentialStream *)&SD3, "Bearing_IMU = %d", bearing_imu);
         	 bearing = (1-bearing_prox/100)*bearing_imu + bearing_prox;
         	 //chprintf((BaseSequentialStream *)&SD3, "Bearing_RES = %.4f", bearing);
         	 move(bearing);
