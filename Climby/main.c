@@ -18,13 +18,12 @@
 //#include <i2c_bus.h>
 //#include <chprintf.h>
 
-#include <climb2.h>
+#include <climb.h>
 
 messagebus_t bus;
 MUTEX_DECL(bus_lock);
 CONDVAR_DECL(bus_condvar);
 
-//Comes from TP4_correction
 static void serial_start(void)
 {
 	static SerialConfig ser_cfg = {
@@ -41,7 +40,7 @@ int main(void){
 	//ChibiOS initialization
 	halInit();
 	chSysInit();
-	mpu_init(); //Used in example project
+	mpu_init();
 
 	//Serial communication initialization
 	serial_start();
@@ -63,12 +62,12 @@ int main(void){
 	imu_start();
 
 	//IR sensors initialization
-	proximity_start();
+	//proximity_start();
 
 	//ToF sensor initialization
 	VL53L0X_start();
 
-	spi_comm_start();
+	spi_comm_start(); //Used to set RGB leds
 
 	//Start the SetPath thread
 	set_path_start();
@@ -81,7 +80,6 @@ int main(void){
 	return 0;
 }
 
-//Comes from TP4_correction
 #define STACK_CHK_GUARD 0xe2dee396
 uintptr_t __stack_chk_guard = STACK_CHK_GUARD;
 
