@@ -9,7 +9,7 @@
 
 #include <leds_handler.h>
 
-void climby_toggle_leds(leds_state_t state, int16_t bearing){
+void toggle_blinking_leds(leds_state_t state){
 	switch(state){
 	case CALIBRATION:
 		toggle_rgb_led(LED2, RED_LED, 255);
@@ -18,10 +18,6 @@ void climby_toggle_leds(leds_state_t state, int16_t bearing){
 		toggle_rgb_led(LED8, RED_LED, 255);
 		break;
 	case MOVEMENT:
-		if(bearing <= 0)
-			set_rgb_led(LED2, 0, 0, 255); //set because in movement state LEDs do not blink
-		if(bearing >= 0)
-			set_rgb_led(LED8, 0, 0, 255);
 		break;
 	case TOP_REACHED:
 		toggle_rgb_led(LED2, GREEN_LED, 255);
@@ -31,24 +27,40 @@ void climby_toggle_leds(leds_state_t state, int16_t bearing){
 	}
 }
 
+void set_movement_leds(int16_t bearing){
+	if(bearing < 0){
+		set_rgb_led(LED2, 0, 0, 255);
+		set_rgb_led(LED8, 0, 0, 0);
+	}
+	if(bearing == 0){
+		set_rgb_led(LED2, 0, 0, 255);
+		set_rgb_led(LED8, 0, 0, 255);
+	}
+	else{
+		set_rgb_led(LED2, 0, 0, 0);
+		set_rgb_led(LED8, 0, 0, 255);
+	}
+}
+
 void climby_leds_handler(leds_state_t state, int16_t bearing){
 	static leds_state_t prev_state = 0;
 	static int8_t blink_counter = 0;
-	if(prev_state == MOVEMENT){
-		return;
+	if(state == MOVEMENT){
+		set_movement_leds(bearing);
 	}
-	if(state != prev_state){
-		clear_leds();
-		blink_counter = 0;
-		prev_state = state;
-		clear_leds();
-		climby_toggle_leds(state, bearing);
+	else{
+		if(state != prev_state){
+			clear_leds();
+			blink_counter = 0;
+			toggle_blinking_leds(state);
+		}
+		else if(blink_counter >= BLINK_COUNTER_MAX){
+			blink_counter = 0;
+			toggle_blinking_leds(state);
+		}
+		++blink_counter;
 	}
-	else if(blink_counter >= BLINK_COUNTER_MAX){
-		blink_counter = 0;
-		climby_toggle_leds(state,bearing);
-	}
-	++blink_counter;
+	prev_state = state;
 }
 
 //OLDER FUNCTIONS I REMOVED :

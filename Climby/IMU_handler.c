@@ -24,8 +24,8 @@ void get_averaged_acc(int16_t* acc){
 	static int16_t acc_x_buffer[IMU_BUFFER_SIZE_XY] = {0};
 	static int16_t acc_y_buffer[IMU_BUFFER_SIZE_XY] = {0};
 	static int16_t acc_z_buffer[IMU_BUFFER_SIZE_Z] = {0};
-	static int buffer_place_xy = 0;
-	static int buffer_place_z = 0;
+	static int8_t buffer_place_xy = 0;
+	static int8_t buffer_place_z = 0;
 	static int32_t acc_x_sum=0; //Used to calculate a running average
 	static int32_t acc_y_sum=0;
 	static int32_t acc_z_sum=0;

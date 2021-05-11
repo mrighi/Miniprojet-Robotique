@@ -15,15 +15,21 @@ typedef enum {
 }leds_state_t;
 
 /**
-* @brief	Used both to set and to toggle the rgb leds
+* @brief	Toggle the four rgb leds
 * 			In CALIBRATION state toggles the four leds red
-* 			In MOVEMENT state turns the left or right front LED blue, depending on the sign of bearing
-* 			In CALIBRATION state toggles the four leds green
+* 			In TOP_REACHED state toggles the four leds green
 *
 * @param	Movement state : CALIBRATION, MOVEMENT, TOP_REACHED
-* 			Bearing to determine which led to turn on in movement state
 */
-void climby_toggle_leds(leds_state_t state, int16_t bearing);
+void toggle_blinking_leds(leds_state_t state);
+
+/**
+* @brief	Light the left and/or right front rgb leds blue, depending on the sign of bearing
+*
+* @param	Movement state : CALIBRATION, MOVEMENT, TOP_REACHED
+* 			Bearing
+*/
+void set_movement_leds(int16_t bearing);
 
 /**
 * @brief	Used to handle leds behaviour:
