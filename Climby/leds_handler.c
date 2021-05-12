@@ -45,16 +45,19 @@ void set_movement_leds(int16_t bearing){
 void climby_leds_handler(leds_state_t state, int16_t bearing){
 	static leds_state_t prev_state = 0;
 	static int8_t blink_counter = 0;
-	if(state == MOVEMENT){
-		set_movement_leds(bearing);
+	if(state != prev_state){
+		blink_counter = 0;
+		clear_leds();
+		if(state == MOVEMENT)
+			set_movement_leds(bearing);
+		else
+			toggle_blinking_leds(state);
+	}
+	else if(state == MOVEMENT){
+		toggle_blinking_leds(state);
 	}
 	else{
-		if(state != prev_state){
-			clear_leds();
-			blink_counter = 0;
-			toggle_blinking_leds(state);
-		}
-		else if(blink_counter >= BLINK_COUNTER_MAX){
+		if(blink_counter >= BLINK_COUNTER_MAX){
 			blink_counter = 0;
 			toggle_blinking_leds(state);
 		}

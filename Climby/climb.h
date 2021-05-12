@@ -11,17 +11,21 @@ extern "C" {
 
 //#define g							9.81
 
-#define SPEED_BASE					500		//Base movement speed
-#define SPEED_MAX_COEFF				0.003 	//Limit max speed of the robot
+#define BEARING_MAX					100
 
-#define DELTA_MAX 					250
-#define DELTA_MIN					-DELTA_MAX
+#define SPEED_BASE					500		//Base movement speed
+#define BEARING_TO_SPEED			0.003*1100 	//Empirical
+
+#define DELTA_SPEED_MIN				-800
+#define DELTA_SPEED_MAX 			600 //Motor saturates before +800
 
 //#define IMU_BUFFER_SIZE_XY			5
 //#define IMU_BUFFER_SIZE_Z			50
 
-#define IMU_EPSILON					0.01	//Determined empirically
-#define IMU_RESOLUTION				32000
+#define IMU_GO_STRAIGHT_THRESHOLD	320
+
+//#define IMU_EPSILON					0.01	//Determined empirically
+//#define IMU_RESOLUTION				32000
 //#define IMU_MAX						2*g
 //#define IMU_OFFSET_MAX				-17000
 //#define IMU_OFFSET_MIN				-15000
@@ -58,7 +62,7 @@ extern "C" {
  * @return	A bearing value [-100,100] proportional to the angle between
  * 				the robot's direction of movement and the axis of maximal climb
  */
-int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z);
+int8_t imu_bearing(int16_t acc_x, int16_t acc_y);
 
 /**
 * @brief	Used to find the rotational correction value to avoid obstacles
@@ -69,14 +73,14 @@ int16_t imu_bearing(int32_t acc_x, int32_t acc_y, int32_t acc_z);
 * @return	A bearing value [-100,100] proportional to the distance between
 * 				the robot and an obstacle less than 10cm away and of arbitrary sign
 */
-int16_t prox_bearing(uint16_t dist_mm);
+int8_t prox_bearing(uint16_t dist_mm);
 
 /**
 * @brief	PI controller
 *
 * @param	A bearing value [-100,100]
 */
-void move(int16_t bearing);
+void move(int8_t bearing);
 
 /**
 * @brief	Start the movement thread : collects accelerometer and ToF sensor values and
