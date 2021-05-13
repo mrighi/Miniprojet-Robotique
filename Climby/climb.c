@@ -40,6 +40,35 @@ int8_t prox_bearing(uint16_t dist_mm){
 	static bool obstacle_cleared = 1; // 0 = obstacle, 1 = obstacle cleared
 
 	static int8_t bearing_prox; //Static because decremented once the obstacle is no longer in line of sight
+
+	if(dist_mm <= PROX_DIST_MIN){ //Obstacle detected
+		if(obstacle_cleared)
+			obstacle_cleared = 0;
+		bearing_prox = (1-2*direction)*PROX_CORRECTION; //Constant correction
+		//bearing_prox = (1-2*direction)*(BEARING_MAX-(dist_mm*BEARING_MAX)/PROX_DIST_MIN); //Linear correction
+		return bearing_prox;
+	}
+	if(obstacle_cleared)
+		return 0;
+	else{
+		bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
+		if(bearing_prox <= STOP_DECREMENTING_THRESHOLD){ //Bearing_prox changes sign
+			bearing_prox = 0;
+			obstacle_cleared = 1;
+			direction =! direction;
+		}
+		bearing_prox_prev = bearing_prox;
+		return bearing_prox;
+	}
+}
+
+//VARIANT USING A RECURSIVE SERIES TO DECREMENT BEARING
+/*
+int8_t prox_bearing(uint16_t dist_mm){
+	static bool direction = 0; //Direction of the robot : 0 = left, 1 = right
+	static bool obstacle_cleared = 1; // 0 = obstacle, 1 = obstacle cleared
+
+	static int8_t bearing_prox; //Static because decremented once the obstacle is no longer in line of sight
 	static int8_t bearing_prox_prev;
 
 	if(dist_mm <= PROX_DIST_MIN){ //Obstacle detected
@@ -64,7 +93,7 @@ int8_t prox_bearing(uint16_t dist_mm){
 		return bearing_prox;
 	}
 }
-
+*/
 void move (int8_t bearing){
 	static int8_t bearing_prev = 0; //Used for D term
 	static int16_t bearingI = 0; //Used for I term
