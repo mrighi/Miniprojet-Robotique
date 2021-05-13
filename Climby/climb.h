@@ -14,7 +14,7 @@ extern "C" {
 #define BEARING_MAX					100
 
 #define SPEED_BASE					500		//Base movement speed
-#define BEARING_TO_SPEED			0.003*1100 	//Empirical
+//#define BEARING_TO_SPEED			0.003*1100 	//Empirical
 
 #define DELTA_SPEED_MIN				-800
 #define DELTA_SPEED_MAX 			800 //Motor saturates before +800
@@ -22,7 +22,7 @@ extern "C" {
 //#define IMU_BUFFER_SIZE_XY			5
 //#define IMU_BUFFER_SIZE_Z			50
 
-#define IMU_GO_STRAIGHT_THRESHOLD	320
+#define IMU_GO_STRAIGHT_THRESHOLD	200
 
 //#define IMU_EPSILON					0.01	//Determined empirically
 //#define IMU_RESOLUTION				32000
@@ -41,12 +41,13 @@ extern "C" {
 //#define PROX_MAX					1000
 //#define PROX_THRESHOLD				60 		//Determined empirically
 
-#define PROX_DIST_MIN				100
-#define PROX_DEC_COEFF				2
+#define PROX_DIST_MIN				120
+#define PROX_DEC_COEFF				1.5
+#define PROX_CORRECTION				50
 
-#define Kp							2
+#define Kp							5
 #define Kd							0
-#define Ki							0
+#define Ki							0.05
 
 /**
 * Convention used throughout for bearings: trigonometric direction

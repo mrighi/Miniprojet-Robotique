@@ -1,8 +1,8 @@
-//#include "ch.h"
-//#include "hal.h"
+#include "ch.h"
+#include "hal.h"
 //#include <math.h>
 //#include <usbcfg.h>
-//#include <chprintf.h>
+#include <chprintf.h>
 //#include <i2c_bus.h>
 
 #include <leds.h>
@@ -22,19 +22,19 @@ void toggle_calibration_leds(void){
 	leds_state = !leds_state;
 }
 
-void set_movement_leds(int16_t bearing){
-	if(bearing < 0){
-		set_rgb_led(LED2, 0, 0, 255);
+void set_movement_leds(int16_t rotation){
+	if(rotation < 0){
+		set_rgb_led(LED2, 0, 0, 255);// magic number
 		set_rgb_led(LED8, 0, 0, 0);
+		return;
 	}
-	if(bearing == 0){
+	if(rotation == 0){
 		set_rgb_led(LED2, 0, 0, 255);
 		set_rgb_led(LED8, 0, 0, 255);
+		return;
 	}
-	else{
-		set_rgb_led(LED2, 0, 0, 0);
-		set_rgb_led(LED8, 0, 0, 255);
-	}
+	set_rgb_led(LED2, 0, 0, 0);
+	set_rgb_led(LED8, 0, 0, 255);
 }
 
 void toggle_topreached_leds(void){
@@ -49,7 +49,7 @@ void toggle_topreached_leds(void){
 	++counter;
 }
 
-void climby_leds_handler(leds_state_t state, int16_t bearing){
+void climby_leds_handler(leds_state_t state, int16_t rotation){
 	static leds_state_t prev_state = 0;
 	if(prev_state != state)
 		clear_leds();
@@ -58,7 +58,7 @@ void climby_leds_handler(leds_state_t state, int16_t bearing){
 		toggle_calibration_leds();
 		break;
 	case MOVEMENT:
-		set_movement_leds(bearing);
+		set_movement_leds(rotation);
 		break;
 	case TOP_REACHED:
 		toggle_topreached_leds();

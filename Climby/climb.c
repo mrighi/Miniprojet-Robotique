@@ -40,15 +40,15 @@ int8_t prox_bearing(uint16_t dist_mm){
 	static bool switch_direction_flag = 0;
 	static bool obstacle_cleared = 1; // 0 = obstacle, 1 = obstacle cleared
 
-	static int8_t bearing_prox = 0; //Static because decremented once the obstacle is no longer in line of sight
+	static int8_t bearing_prox; //Static because decremented once the obstacle is no longer in line of sight
 
 	if(dist_mm <= PROX_DIST_MIN){ //Obstacle detected
 		if(!switch_direction_flag){
 			switch_direction_flag = 1;
 			obstacle_cleared = 0;
 		}
-		//bearing_prox = (1-2*direction)*40; //Constant correction
-		bearing_prox = (1-2*direction)*(BEARING_MAX-(dist_mm*BEARING_MAX)/PROX_DIST_MIN); //Linear correction
+		bearing_prox = (1-2*direction)*PROX_CORRECTION; //Constant correction
+		//bearing_prox = (1-2*direction)*(BEARING_MAX-(dist_mm*BEARING_MAX)/PROX_DIST_MIN); //Linear correction
 		return bearing_prox;
 	}
 
@@ -77,13 +77,13 @@ void move (int8_t bearing){
 		bearingI += bearing ;
 
 	//May need to be higher than [-100, 100]
-	chprintf((BaseSequentialStream *)&SD3, "I term = %d ", bearingI);
+	//chprintf((BaseSequentialStream *)&SD3, "I term = %d ", bearingI);
 
-	int16_t delta_speed = BEARING_TO_SPEED*(Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI);
-	if(delta_speed > DELTA_SPEED_MAX) //Limit maximal acceleration
-		delta_speed = DELTA_SPEED_MAX;
-	if(delta_speed < -DELTA_SPEED_MAX)
-		delta_speed = -DELTA_SPEED_MAX;
+	int16_t delta_speed = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
+	//if(delta_speed > DELTA_SPEED_MAX) //Limit maximal acceleration
+		//delta_speed = DELTA_SPEED_MAX;
+	//if(delta_speed < -DELTA_SPEED_MAX)
+		//delta_speed = -DELTA_SPEED_MAX;
 
 	bearing_prev = bearing;
 
@@ -93,7 +93,7 @@ void move (int8_t bearing){
 	left_motor_set_speed(SPEED_BASE - delta_speed);
 	right_motor_set_speed(SPEED_BASE + delta_speed);
 
-	climby_leds_handler(MOVEMENT, delta_speed);
+	climby_leds_handler(MOVEMENT, bearing); // attention 8 ou 16 bits
 	//Led handling done here because real correction value delta_speed does not necessarily correspond to bearing
 }
 
@@ -131,7 +131,7 @@ static THD_FUNCTION(SetPath, arg) {
         	 chprintf((BaseSequentialStream *)&SD3, "BEARING_PROX = %d ", bearing_prox);
         	 int8_t bearing_imu = imu_bearing(acc[X_AXIS], acc[Y_AXIS]);
         	 chprintf((BaseSequentialStream *)&SD3, "BEARING_IMU = %d ", bearing_imu);
-        	 int8_t bearing = ((BEARING_MAX-bearing_prox)*bearing_imu)/BEARING_MAX + bearing_prox;
+        	 int8_t bearing = ((PROX_CORRECTION-fabs(bearing_prox))*bearing_imu)/PROX_CORRECTION + bearing_prox;
         	 chprintf((BaseSequentialStream *)&SD3, "BEARING_RES = %d ", bearing);
         	 move(bearing);
          }
