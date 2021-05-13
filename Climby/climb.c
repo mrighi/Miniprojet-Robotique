@@ -22,12 +22,12 @@
 static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 
 int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
-	if(fabs(acc_x) <= IMU_GO_STRAIGHT_THRESHOLD)
+	if(fabs(acc_x) <= IMU_GO_STRAIGHT_THRESHOLD && acc_y > 0)
 			return 0;
 	//IS THIS CONDITION REDUNDANT ???
 	//if(acc_y < IMU_TOP_MAX_Y && acc_z > IMU_TOP_MAX_Z){
 	//Limit case to avoid division by zero + if the robot is more than 90 degrees off
-	if(acc_y < IMU_TOP_MAX_Y && acc_x > 0)
+	if(acc_y < IMU_TOP_MAX_Y && acc_x >= 0)
 			return -BEARING_MAX;
 	if(acc_y < IMU_TOP_MAX_Y && acc_x < 0)
 			return BEARING_MAX;
