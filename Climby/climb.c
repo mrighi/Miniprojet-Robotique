@@ -126,12 +126,11 @@ static THD_FUNCTION(SetPath, arg) {
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
 
-    int16_t acc[3] = {0};
-
     while(climby_calibrate_acc()){
     	climby_leds_handler(CALIBRATION,0);
     }
 
+    int16_t acc[3] = {0};
     //systime_t time;
 
     while(1){
