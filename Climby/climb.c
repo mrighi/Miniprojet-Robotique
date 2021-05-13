@@ -52,7 +52,8 @@ int8_t prox_bearing(uint16_t dist_mm){
 	if(obstacle_cleared)
 		return 0;
 	else{
-		bearing_prox = (1-2*direction)*(2*fabs(bearing_prox)-42); //2*bearing won't saturate because bearing stops at 40
+		//decrement bearing prox following recursive series
+		bearing_prox = (1-2*direction)*(PROX_DEC_COEFF1*fabs(bearing_prox)-PROX_DEC_COEFF2); //2*bearing won't saturate because bearing stops at 40
 		//bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
 		if(fabs(bearing_prox)+fabs(bearing_prox_prev) > fabs(bearing_prox+bearing_prox_prev)){ //Bearing_prox changes sign
 			bearing_prox = 0;

@@ -13,7 +13,7 @@ extern "C" {
 
 //#define g							9.81
 
-#define ATAN_TO_BEARING				200.0f/M_PI
+#define ATAN_TO_BEARING				64	//approx 100*2/pi
 
 #define BEARING_MAX					100
 
@@ -48,12 +48,16 @@ extern "C" {
 //#define PROX_THRESHOLD				60 		//Determined empirically
 
 #define PROX_DIST_MIN				120
-#define PROX_DEC_COEFF				1.5
+
+//#define PROX_DEC_COEFF				1.5
+#define PROX_DEC_COEFF1				2
+#define PROX_DEC_COEFF2				41
+
 #define PROX_CORRECTION				50
 
 #define Kp							5
 #define Kd							0
-#define Ki							0.05
+#define Ki							0.05	//Should be calculated in float ???
 
 /**
 * Convention used throughout for bearings: trigonometric direction
