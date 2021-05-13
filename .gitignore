@@ -1,8 +1,8 @@
-build
-.Climby/DS_store
-.Climby/settings/
-.Climby/project
-.Climby/cproject
+**/build
+**/.DS_store
+**/.settings/
+**/.project
+**/.cproject
 
 # Prerequisites
 *.d
