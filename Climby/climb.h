@@ -57,8 +57,8 @@ extern "C" {
 #define PROX_CORRECTION				50
 
 #define Kp							5
-#define Kd							0
-#define Ki							0.05	//Should be calculated in float ???
+//#define	Td							0	//NEVER SET TO ZERO !!!
+#define Ti							100 //NEVER SET TO ZERO !!!
 
 /**
 * Convention used throughout for bearings: trigonometric direction

@@ -105,7 +105,8 @@ void move (int8_t bearing){
 	//May need to be higher than [-100, 100]
 	//chprintf((BaseSequentialStream *)&SD3, "I term = %d ", bearingI);
 
-	int16_t delta_speed = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
+	//int16_t delta_speed = Kp*bearing + (Kp*(bearing - bearing_prev))/Td+ (Kp*bearingI)/Ti);
+	int16_t delta_speed = Kp*bearing + (Kp*bearingI)/Ti;
 
 	bearing_prev = bearing;
 
