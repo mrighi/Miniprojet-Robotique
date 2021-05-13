@@ -32,38 +32,34 @@ int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(acc_y < IMU_TOP_MAX_Y && acc_x < 0)
 			return BEARING_MAX;
 	//Calculated in float [-1,1] then converted to int [-100,100] to optimize processing time
-	return (int8_t)(-atan2f(acc_x, acc_y)*200.0f/M_PI); // magic number
+	return (int8_t)(-atan2f(acc_x, acc_y)*ATAN_TO_BEARING);
 }
 
 int8_t prox_bearing(uint16_t dist_mm){
 	static bool direction = 0; //Direction of the robot : 0 = left, 1 = right
-	static bool switch_direction_flag = 0;
 	static bool obstacle_cleared = 1; // 0 = obstacle, 1 = obstacle cleared
 
 	static int8_t bearing_prox; //Static because decremented once the obstacle is no longer in line of sight
+	static int8_t bearing_prox_prev;
 
 	if(dist_mm <= PROX_DIST_MIN){ //Obstacle detected
-		if(!switch_direction_flag){
-			switch_direction_flag = 1;
+		if(obstacle_cleared)
 			obstacle_cleared = 0;
-		}
 		bearing_prox = (1-2*direction)*PROX_CORRECTION; //Constant correction
 		//bearing_prox = (1-2*direction)*(BEARING_MAX-(dist_mm*BEARING_MAX)/PROX_DIST_MIN); //Linear correction
 		return bearing_prox;
 	}
-
 	if(obstacle_cleared)
 		return 0;
 	else{
-		if(switch_direction_flag){
-			direction = !direction;
-			switch_direction_flag = 0;
-		}
-		bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
-		if(fabs(bearing_prox) <= PROX_DEC_COEFF){ //Case bearing_prox cannot be decremented without changing sign
-			obstacle_cleared = 1;
+		bearing_prox = (1-2*direction)*(2*fabs(bearing_prox)-42); //2*bearing won't saturate because bearing stops at 40
+		//bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
+		if(fabs(bearing_prox)+fabs(bearing_prox_prev) > fabs(bearing_prox+bearing_prox_prev)){ //Bearing_prox changes sign
 			bearing_prox = 0;
+			obstacle_cleared = 1;
+			direction =! direction;
 		}
+		bearing_prox_prev = bearing_prox;
 		return bearing_prox;
 	}
 }
@@ -71,29 +67,25 @@ int8_t prox_bearing(uint16_t dist_mm){
 void move (int8_t bearing){
 	static int8_t bearing_prev = 0; //Used for D term
 	static int16_t bearingI = 0; //Used for I term
-	if(fabs(bearingI) < 300 ||
-			(bearingI >= 300 && bearing < 0) ||
-			(bearingI <= -300 && bearing > 0)) //Prevent saturation // magic number
+	if(fabs(bearingI) < BEARING_I_MAX ||
+			(bearingI >= BEARING_I_MAX && bearing < 0) ||
+			(bearingI <= -BEARING_I_MAX && bearing > 0)) //Prevent saturation
 		bearingI += bearing ;
 
 	//May need to be higher than [-100, 100]
 	//chprintf((BaseSequentialStream *)&SD3, "I term = %d ", bearingI);
 
 	int16_t delta_speed = Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI;
-	//if(delta_speed > DELTA_SPEED_MAX) //Limit maximal acceleration
-		//delta_speed = DELTA_SPEED_MAX;
-	//if(delta_speed < -DELTA_SPEED_MAX)
-		//delta_speed = -DELTA_SPEED_MAX;
 
 	bearing_prev = bearing;
 
 	//Should be [-800 to 600]
-	chprintf((BaseSequentialStream *)&SD3, "DELTA_SPEED = %d ", delta_speed);
+	//chprintf((BaseSequentialStream *)&SD3, "DELTA_SPEED = %d ", delta_speed);
 
 	left_motor_set_speed(SPEED_BASE - delta_speed);
 	right_motor_set_speed(SPEED_BASE + delta_speed);
 
-	climby_leds_handler(MOVEMENT, bearing); // attention 8 ou 16 bits
+	climby_leds_handler(MOVEMENT, bearing);
 	//Led handling done here because real correction value delta_speed does not necessarily correspond to bearing
 }
 
@@ -112,7 +104,7 @@ static THD_FUNCTION(SetPath, arg) {
     //systime_t time;
 
     while(1){
-    	systime_t time = chVTGetSystemTime(); //IS THIS ALLOWED ???
+    	systime_t time = chVTGetSystemTime();
 
         uint16_t ToF_dist_mm = VL53L0X_get_dist_mm();
 

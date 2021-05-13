@@ -14,42 +14,42 @@ void toggle_calibration_leds(void){
 	if(leds_state)
 		clear_leds();
 	else{
-		set_rgb_led(LED2, 255, 150, 0); //Orange
-		set_rgb_led(LED4, 255, 150, 0);
-		set_rgb_led(LED6, 255, 150, 0);
-		set_rgb_led(LED8, 255, 150, 0);
+		set_rgb_led(LED2, INTENSITY_MAX, INTENSITY_MED, 0); //Orange
+		set_rgb_led(LED4, INTENSITY_MAX, INTENSITY_MED, 0);
+		set_rgb_led(LED6, INTENSITY_MAX, INTENSITY_MED, 0);
+		set_rgb_led(LED8, INTENSITY_MAX, INTENSITY_MED, 0);
 	}
 	leds_state = !leds_state;
 }
 
-void set_movement_leds(int16_t rotation){
+void set_movement_leds(int8_t rotation){
 	if(rotation < 0){
-		set_rgb_led(LED2, 0, 0, 255);// magic number
+		set_rgb_led(LED2, 0, 0, INTENSITY_MAX); //Blue
 		set_rgb_led(LED8, 0, 0, 0);
 		return;
 	}
 	if(rotation == 0){
-		set_rgb_led(LED2, 0, 0, 255);
-		set_rgb_led(LED8, 0, 0, 255);
+		set_rgb_led(LED2, 0, 0, INTENSITY_MAX);
+		set_rgb_led(LED8, 0, 0, INTENSITY_MAX);
 		return;
 	}
 	set_rgb_led(LED2, 0, 0, 0);
-	set_rgb_led(LED8, 0, 0, 255);
+	set_rgb_led(LED8, 0, 0, INTENSITY_MAX);
 }
 
 void toggle_topreached_leds(void){
 	static int counter = TOPREACHED_COUNTER_MAX; //Turn on leds on first cycle
 	if(counter >= TOPREACHED_COUNTER_MAX){
 		counter = 0;
-		toggle_rgb_led(LED2, GREEN_LED, 255);
-		toggle_rgb_led(LED4, GREEN_LED, 255);
-		toggle_rgb_led(LED6, GREEN_LED, 255);
-		toggle_rgb_led(LED8, GREEN_LED, 255);
+		toggle_rgb_led(LED2, GREEN_LED, INTENSITY_MAX);
+		toggle_rgb_led(LED4, GREEN_LED, INTENSITY_MAX);
+		toggle_rgb_led(LED6, GREEN_LED, INTENSITY_MAX);
+		toggle_rgb_led(LED8, GREEN_LED, INTENSITY_MAX);
 	}
 	++counter;
 }
 
-void climby_leds_handler(leds_state_t state, int16_t rotation){
+void climby_leds_handler(leds_state_t state, int8_t rotation){
 	static leds_state_t prev_state = 0;
 	if(prev_state != state)
 		clear_leds();

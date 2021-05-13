@@ -5,6 +5,9 @@
 extern "C" {
 #endif
 
+#define INTENSITY_MAX			255
+#define INTENSITY_MED			150
+
 #define CALIBRATION_COUNTER_MAX	1
 #define TOPREACHED_COUNTER_MAX	5
 
@@ -26,7 +29,7 @@ void toggle_calibration_leds(void);
 *
 * @param	Bearing value (can be any int)
 */
-void set_movement_leds(int16_t rotation);
+void set_movement_leds(int8_t rotation);
 
 /**
 * @brief	Toggle the four rgb leds to green
@@ -42,6 +45,6 @@ void toggle_topreached_leds(void);
 * @param	Movement state : CALIBRATION, MOVEMENT, TOP_REACHED
 * 			Bearing to determine which led to turn on in movement state
 */
-void climby_leds_handler(leds_state_t state, int16_t rotation);
+void climby_leds_handler(leds_state_t state, int8_t rotation);
 
 #endif /* LEDS_HANDLER_H_ */

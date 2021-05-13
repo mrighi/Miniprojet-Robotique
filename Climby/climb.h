@@ -5,19 +5,25 @@
 extern "C" {
 #endif
 
+//#include <math.h>
+
 //#define X_AXIS						0
 //#define Y_AXIS						1
 //#define Z_AXIS						2
 
 //#define g							9.81
 
+#define ATAN_TO_BEARING				200.0f/M_PI
+
 #define BEARING_MAX					100
+
+#define BEARING_I_MAX				300
 
 #define SPEED_BASE					500		//Base movement speed
 //#define BEARING_TO_SPEED			0.003*1100 	//Empirical
 
-#define DELTA_SPEED_MIN				-800
-#define DELTA_SPEED_MAX 			800 //Motor saturates before +800
+//#define DELTA_SPEED_MIN				-800
+//#define DELTA_SPEED_MAX 			800 //Motor saturates before +800
 
 //#define IMU_BUFFER_SIZE_XY			5
 //#define IMU_BUFFER_SIZE_Z			50
