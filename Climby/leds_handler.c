@@ -62,6 +62,7 @@ void climby_leds_handler(leds_state_t state, int16_t bearing){
 		break;
 	case TOP_REACHED:
 		toggle_topreached_leds();
+		break;
 	}
 }
 
