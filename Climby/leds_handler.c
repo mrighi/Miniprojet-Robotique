@@ -9,22 +9,17 @@
 
 #include <leds_handler.h>
 
-void toggle_blinking_leds(leds_state_t state){
-	switch(state){
-	case CALIBRATION:
-		toggle_rgb_led(LED2, RED_LED, 255);
-		toggle_rgb_led(LED4, RED_LED, 255);
-		toggle_rgb_led(LED6, RED_LED, 255);
-		toggle_rgb_led(LED8, RED_LED, 255);
-		break;
-	case MOVEMENT:
-		break;
-	case TOP_REACHED:
-		toggle_rgb_led(LED2, GREEN_LED, 255);
-		toggle_rgb_led(LED4, GREEN_LED, 255);
-		toggle_rgb_led(LED6, GREEN_LED, 255);
-		toggle_rgb_led(LED8, GREEN_LED, 255);
+void toggle_calibration_leds(void){
+	static bool leds_state = 1; //Turn on leds on first cycle
+	if(leds_state)
+		clear_leds();
+	else{
+		set_rgb_led(LED2, 255, 150, 0); //Orange
+		set_rgb_led(LED4, 255, 150, 0);
+		set_rgb_led(LED6, 255, 150, 0);
+		set_rgb_led(LED8, 255, 150, 0);
 	}
+	leds_state = !leds_state;
 }
 
 void set_movement_leds(int16_t bearing){
@@ -42,6 +37,37 @@ void set_movement_leds(int16_t bearing){
 	}
 }
 
+void toggle_topreached_leds(void){
+	static int counter = TOPREACHED_COUNTER_MAX; //Turn on leds on first cycle
+	if(counter >= TOPREACHED_COUNTER_MAX){
+		counter = 0;
+		toggle_rgb_led(LED2, GREEN_LED, 255);
+		toggle_rgb_led(LED4, GREEN_LED, 255);
+		toggle_rgb_led(LED6, GREEN_LED, 255);
+		toggle_rgb_led(LED8, GREEN_LED, 255);
+	}
+	++counter;
+}
+
+void climby_leds_handler(leds_state_t state, int16_t bearing){
+	static leds_state_t prev_state = 0;
+	if(prev_state != state)
+		clear_leds();
+	switch(state){
+	case CALIBRATION:
+		toggle_calibration_leds();
+		break;
+	case MOVEMENT:
+		set_movement_leds(bearing);
+		break;
+	case TOP_REACHED:
+		toggle_topreached_leds();
+	}
+}
+
+//OLDER FUNCTIONS I REMOVED :
+
+/*
 void climby_leds_handler(leds_state_t state, int16_t bearing){
 	static leds_state_t prev_state = 0;
 	static int8_t blink_counter = 0;
@@ -54,7 +80,7 @@ void climby_leds_handler(leds_state_t state, int16_t bearing){
 			toggle_blinking_leds(state);
 	}
 	else if(state == MOVEMENT){
-		toggle_blinking_leds(state);
+		set_movement_leds(bearing);
 	}
 	else{
 		if(blink_counter >= BLINK_COUNTER_MAX){
@@ -64,9 +90,7 @@ void climby_leds_handler(leds_state_t state, int16_t bearing){
 		++blink_counter;
 	}
 	prev_state = state;
-}
-
-//OLDER FUNCTIONS I REMOVED :
+} */
 
 /*void climby_set_leds(led_state_t state, int16_t bearing){
 	clear_leds();

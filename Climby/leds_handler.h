@@ -5,7 +5,8 @@
 extern "C" {
 #endif
 
-#define BLINK_COUNTER_MAX		5
+#define CALIBRATION_COUNTER_MAX	1
+#define TOPREACHED_COUNTER_MAX	5
 
 //States of the robot where the behavior of the leds has to be different
 typedef enum {
@@ -15,21 +16,24 @@ typedef enum {
 }leds_state_t;
 
 /**
-* @brief	Toggle the four rgb leds
-* 			In CALIBRATION state toggles the four leds red
-* 			In TOP_REACHED state toggles the four leds green
-*
-* @param	Movement state : CALIBRATION, MOVEMENT, TOP_REACHED
+* @brief	Toggle the four rgb leds to orange
+* 			At the first call lets are set, at the next they are cleared, etc.
 */
-void toggle_blinking_leds(leds_state_t state);
+void toggle_calibration_leds(void);
 
 /**
 * @brief	Light the left and/or right front rgb leds blue, depending on the sign of bearing
 *
-* @param	Movement state : CALIBRATION, MOVEMENT, TOP_REACHED
-* 			Bearing
+* @param	Bearing value (can be any int)
 */
 void set_movement_leds(int16_t bearing);
+
+/**
+* @brief	Toggle the four rgb leds to green
+* 			At the first call lets are set, at the next they are cleared, etc.
+*
+*/
+void toggle_topreached_leds(void);
 
 /**
 * @brief	Used to handle leds behaviour:
