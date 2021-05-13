@@ -9,8 +9,8 @@ extern "C" {
 #define Y_AXIS						1
 #define Z_AXIS						2
 
-#define IMU_OFFSET_MAX				-17000
-#define IMU_OFFSET_MIN				-15000
+#define IMU_OFFSET_MAX				-15000
+#define IMU_OFFSET_MIN				-17000
 
 #define IMU_BUFFER_SIZE_XY			5
 #define IMU_BUFFER_SIZE_Z			50

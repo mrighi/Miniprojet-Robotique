@@ -17,7 +17,7 @@ extern "C" {
 #define BEARING_TO_SPEED			0.003*1100 	//Empirical
 
 #define DELTA_SPEED_MIN				-800
-#define DELTA_SPEED_MAX 			600 //Motor saturates before +800
+#define DELTA_SPEED_MAX 			800 //Motor saturates before +800
 
 //#define IMU_BUFFER_SIZE_XY			5
 //#define IMU_BUFFER_SIZE_Z			50
@@ -46,7 +46,7 @@ extern "C" {
 
 #define Kp							2
 #define Kd							0
-#define Ki							0.2
+#define Ki							0
 
 /**
 * Convention used throughout for bearings: trigonometric direction

@@ -29,10 +29,10 @@ int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
 	//Limit case to avoid division by zero + if the robot is more than 90 degrees off
 	if(acc_y < IMU_TOP_MAX_Y && acc_x > 0)
 			return -BEARING_MAX;
-	if(acc_x < 0 && acc_x < 0)
+	if(acc_y < IMU_TOP_MAX_Y && acc_x < 0)
 			return BEARING_MAX;
 	//Calculated in float [-1,1] then converted to int [-100,100] to optimize processing time
-	return (int8_t)(-atan2f(acc_x, acc_y)*200.0f/M_PI);
+	return (int8_t)(-atan2f(acc_x, acc_y)*200.0f/M_PI); // magic number
 }
 
 int8_t prox_bearing(uint16_t dist_mm){
@@ -70,10 +70,10 @@ int8_t prox_bearing(uint16_t dist_mm){
 
 void move (int8_t bearing){
 	static int8_t bearing_prev = 0; //Used for D term
-	static int8_t bearingI = 0; //Used for I term
-	if(fabs(bearingI) < BEARING_MAX ||
-			(bearingI >= BEARING_MAX && bearing < 0) ||
-			(bearingI <= -BEARING_MAX && bearing > 0)) //Prevent saturation
+	static int16_t bearingI = 0; //Used for I term
+	if(fabs(bearingI) < 300 ||
+			(bearingI >= 300 && bearing < 0) ||
+			(bearingI <= -300 && bearing > 0)) //Prevent saturation // magic number
 		bearingI += bearing ;
 
 	//May need to be higher than [-100, 100]
@@ -82,8 +82,8 @@ void move (int8_t bearing){
 	int16_t delta_speed = BEARING_TO_SPEED*(Kp*bearing + Kd*(bearing - bearing_prev)+ Ki*bearingI);
 	if(delta_speed > DELTA_SPEED_MAX) //Limit maximal acceleration
 		delta_speed = DELTA_SPEED_MAX;
-	if(delta_speed < DELTA_SPEED_MIN)
-		delta_speed = DELTA_SPEED_MIN;
+	if(delta_speed < -DELTA_SPEED_MAX)
+		delta_speed = -DELTA_SPEED_MAX;
 
 	bearing_prev = bearing;
 
@@ -100,9 +100,10 @@ void move (int8_t bearing){
 static THD_WORKING_AREA(waSetPath, 512);
 
 static THD_FUNCTION(SetPath, arg) {
-
     chRegSetThreadName(__FUNCTION__);
     (void)arg;
+
+    int16_t acc[3] = {0};
 
     while(climby_calibrate_acc()){
     	climby_leds_handler(CALIBRATION,0);
@@ -115,7 +116,6 @@ static THD_FUNCTION(SetPath, arg) {
 
         uint16_t ToF_dist_mm = VL53L0X_get_dist_mm();
 
-        int16_t acc[3] = {0};
         get_averaged_acc(acc);
 
     	if((acc[X_AXIS] < IMU_TOP_MAX_X && acc[X_AXIS] > IMU_TOP_MIN_X) &&
@@ -131,7 +131,7 @@ static THD_FUNCTION(SetPath, arg) {
         	 chprintf((BaseSequentialStream *)&SD3, "BEARING_PROX = %d ", bearing_prox);
         	 int8_t bearing_imu = imu_bearing(acc[X_AXIS], acc[Y_AXIS]);
         	 chprintf((BaseSequentialStream *)&SD3, "BEARING_IMU = %d ", bearing_imu);
-        	 int8_t bearing = ((float)(1-bearing_prox/BEARING_MAX))*bearing_imu + bearing_prox;
+        	 int8_t bearing = ((BEARING_MAX-bearing_prox)*bearing_imu)/BEARING_MAX + bearing_prox;
         	 chprintf((BaseSequentialStream *)&SD3, "BEARING_RES = %d ", bearing);
         	 move(bearing);
          }
