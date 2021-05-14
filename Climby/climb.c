@@ -57,7 +57,6 @@ int8_t prox_bearing(uint16_t dist_mm){
 			obstacle_cleared = 1;
 			direction =! direction;
 		}
-		bearing_prox_prev = bearing_prox;
 		return bearing_prox;
 	}
 }
@@ -95,7 +94,7 @@ int8_t prox_bearing(uint16_t dist_mm){
 }
 */
 void move (int8_t bearing){
-	static int8_t bearing_prev = 0; //Used for D term
+	//static int8_t bearing_prev = 0; //Used for D term
 	static int16_t bearingI = 0; //Used for I term
 	if(fabs(bearingI) < BEARING_I_MAX ||
 			(bearingI >= BEARING_I_MAX && bearing < 0) ||
@@ -108,7 +107,7 @@ void move (int8_t bearing){
 	//int16_t delta_speed = Kp*bearing + (Kp*(bearing - bearing_prev))/Td+ (Kp*bearingI)/Ti);
 	int16_t delta_speed = Kp*bearing + (Kp*bearingI)/Ti;
 
-	bearing_prev = bearing;
+	//bearing_prev = bearing;
 
 	//Should be [-800 to 600]
 	//chprintf((BaseSequentialStream *)&SD3, "DELTA_SPEED = %d ", delta_speed);
@@ -130,13 +129,17 @@ static THD_FUNCTION(SetPath, arg) {
     	climby_leds_handler(CALIBRATION,0);
     }
 
+    systime_t time;
+    uint16_t ToF_dist_mm;
     int16_t acc[3] = {0};
-    //systime_t time;
+    int8_t bearing_prox;
+    int8_t bearing_imu;
+    int8_t bearing_res;
 
     while(1){
-    	systime_t time = chVTGetSystemTime();
+    	time = chVTGetSystemTime();
 
-        uint16_t ToF_dist_mm = VL53L0X_get_dist_mm();
+        ToF_dist_mm = VL53L0X_get_dist_mm();
 
         get_averaged_acc(acc);
 
@@ -149,13 +152,13 @@ static THD_FUNCTION(SetPath, arg) {
     	}
          else{
         	 //Bearings should be [-100, 100]
-        	 int8_t bearing_prox = prox_bearing(ToF_dist_mm);
-        	 chprintf((BaseSequentialStream *)&SD3, "BEARING_PROX = %d ", bearing_prox);
-        	 int8_t bearing_imu = imu_bearing(acc[X_AXIS], acc[Y_AXIS]);
-        	 chprintf((BaseSequentialStream *)&SD3, "BEARING_IMU = %d ", bearing_imu);
-        	 int8_t bearing = ((PROX_CORRECTION-fabs(bearing_prox))*bearing_imu)/PROX_CORRECTION + bearing_prox;
-        	 chprintf((BaseSequentialStream *)&SD3, "BEARING_RES = %d ", bearing);
-        	 move(bearing);
+        	 bearing_prox = prox_bearing(ToF_dist_mm);
+        	 //chprintf((BaseSequentialStream *)&SD3, "BEARING_PROX = %d ", bearing_prox);
+        	 bearing_imu = imu_bearing(acc[X_AXIS], acc[Y_AXIS]);
+        	 //chprintf((BaseSequentialStream *)&SD3, "BEARING_IMU = %d ", bearing_imu);
+        	 bearing_res = ((PROX_CORRECTION-fabs(bearing_prox))*bearing_imu)/PROX_CORRECTION + bearing_prox;
+        	 //chprintf((BaseSequentialStream *)&SD3, "BEARING_RES = %d ", bearing_res);
+        	 move(bearing_res);
          }
 
     	chThdSleepUntilWindowed(time, time + MS2ST(10)); //100 Hz
