@@ -34,7 +34,7 @@ int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
 	//Calculated in float [-1,1] then converted to int [-100,100] to optimize processing time
 	return (int8_t)(-atan2f(acc_x, acc_y)*ATAN_TO_BEARING);
 }
-
+/*
 int8_t prox_bearing(uint16_t dist_mm){
 	static bool direction = 0; //Direction of the robot : 0 = left, 1 = right
 	static bool obstacle_cleared = 1; // 0 = obstacle, 1 = obstacle cleared
@@ -59,6 +59,27 @@ int8_t prox_bearing(uint16_t dist_mm){
 		}
 		return bearing_prox;
 	}
+}
+*/
+
+int8_t prox_bearing(uint16_t dist_mm){
+	static int8_t bearing_prox = 0; //Static because decremented once the obstacle is no longer in line of sight
+	static bool direction = 0; //Direction of the rotation : 0=left, 1=right
+
+	if(dist_mm <= PROX_DIST_MIN){ //Obstacle detected
+		bearing_prox = (1-2*direction)*PROX_CORRECTION; //Constant correction
+		//bearing_prox = (1-2*direction)*(BEARING_MAX-(dist_mm*BEARING_MAX)/PROX_DIST_MIN); //Linear correction
+		return bearing_prox;
+	}
+	if(bearing_prox > PROX_DEC_COEFF){ //Next decrement does not change sign
+		bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
+		return bearing_prox;
+	}
+	if(bearing_prox <= PROX_DEC_COEFF && bearing_prox > 0){
+		bearing_prox = 0;
+		direction = !direction;
+	}
+	return bearing_prox;
 }
 
 //VARIANT USING A RECURSIVE SERIES TO DECREMENT BEARING
