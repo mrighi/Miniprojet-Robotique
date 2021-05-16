@@ -1,6 +1,3 @@
-#include "ch.h"
-#include "hal.h"
-
 #include <leds.h>
 #include <leds_handler.h>
 
