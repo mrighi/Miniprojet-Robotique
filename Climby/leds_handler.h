@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define INTENSITY_MAX			255		//RGB LEDS
+#define INTENSITY_MAX			255		//Used to set RGB LEDS
 #define INTENSITY_MED			150
 
 #define CALIBRATION_COUNTER_MAX	1
@@ -25,7 +25,7 @@ typedef enum {
 void toggle_calibration_leds(void);
 
 /**
-* @brief	Light the left and/or right front rgb leds blue, depending on the sign of bearing
+* @brief	Light the left- and/or right-front rgb leds blue, depending on the sign of bearing
 *
 * @param	Bearing value (can be any int8)
 */
@@ -42,7 +42,7 @@ void toggle_topreached_leds(void);
 * 			In CALIBRATION and TOP_REACHED state blinks the leds, in MOVEMENT activates the corresponding led(s)
 *
 * @param	Movement state : CALIBRATION, MOVEMENT, TOP_REACHED
-* 			Bearing to determine which led to turn on in movement state
+* 			Bearing to determine which led(s) to turn on in movement state
 */
 void climby_leds_handler(leds_state_t state, int8_t rotation);
 

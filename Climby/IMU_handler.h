@@ -26,10 +26,9 @@ bool climby_calibrate_acc(void);
 
 /**
 * @brief	Calculates running average of the most recent accelerometer measures on all axes
+* 				and stores them in the array given as a parameter
 *
-* @param	Pointer to an array of size (at least) 3 to store the calculated values in
-*
-* @return	Averaged acceleration values
+* @param	Pointer to an array of size (at least) 3 to store the calculated values
 */
 void get_averaged_acc(int16_t* acc);
 

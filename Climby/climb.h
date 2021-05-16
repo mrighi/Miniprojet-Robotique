@@ -21,12 +21,13 @@ extern "C" {
 #define IMU_TOP_MAX_Z				400
 #define IMU_TOP_MIN_Z				-400
 
-#define PROX_DIST_MIN				120		//Threshold obstacle detection distance (empirical)
+#define PROX_DIST_MIN				120		// (mm) Threshold obstacle detection distance (empirical)
 
 #define PROX_DEC_COEFF				1		//Empirical
 
 #define PROX_CORRECTION				65		//Empirical
 
+//PI controller
 #define Kp							5
 #define Ti							100 	//NEVER SET TO ZERO !!!
 
@@ -52,8 +53,8 @@ int8_t imu_bearing(int16_t acc_x, int16_t acc_y);
 *
 * @param	ToF sensor distance value in mm
 *
-* @return	A bearing value [-100,100] proportional to the distance between
-* 				the robot and an obstacle less than 10cm away and of arbitrary sign
+* @return	PROX_CORRECTION if the ToF sees an obstacle at most PROX_DIST_MIN mm away,
+* 				zero otherwise
 */
 int8_t prox_bearing(uint16_t dist_mm);
 
@@ -65,8 +66,8 @@ int8_t prox_bearing(uint16_t dist_mm);
 void move(int8_t bearing);
 
 /**
-* @brief	Start the movement thread : collects accelerometer and ToF sensor values and
-* 				sets the motor speeds accordingly
+* @brief	Start the movement thread : continually collects accelerometer and ToF sensor
+* 				values and sets the motor speeds accordingly
 */
 void set_path_start(void);
 
