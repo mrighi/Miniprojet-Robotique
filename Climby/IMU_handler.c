@@ -10,11 +10,10 @@ bool climby_calibrate_acc(void){
 	    offset_x = get_acc_offset(X_AXIS);
 	    offset_y = get_acc_offset(Y_AXIS);
 	    offset_z = get_acc_offset(Z_AXIS);
-	    return offset_z > IMU_OFFSET_MAX || offset_z < IMU_OFFSET_MIN;
+	    return offset_z > IMU_OFFSET_MAX || offset_z < IMU_OFFSET_MIN; //Verify the robot is calibrated on its "stomach"
 }
 
 void get_averaged_acc(int16_t* acc){
-	//For legibility of the code, x,y,z stored in separate variables
 	static int16_t acc_x_buffer[IMU_BUFFER_SIZE_XY] = {0};
 	static int16_t acc_y_buffer[IMU_BUFFER_SIZE_XY] = {0};
 	static int16_t acc_z_buffer[IMU_BUFFER_SIZE_Z] = {0};
@@ -39,7 +38,6 @@ void get_averaged_acc(int16_t* acc){
 	acc[Y_AXIS] = acc_y_sum / IMU_BUFFER_SIZE_XY;
 	acc[Z_AXIS] = acc_z_sum / IMU_BUFFER_SIZE_Z;
 
-	//Increment position on the buffers
-	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ;
+	buffer_place_xy = (buffer_place_xy + 1) % IMU_BUFFER_SIZE_XY ; //Increment position on the buffers
 	buffer_place_z = (buffer_place_z + 1) % IMU_BUFFER_SIZE_Z ;
 }

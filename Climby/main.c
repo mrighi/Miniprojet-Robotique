@@ -12,7 +12,7 @@
 #include <motors.h>
 #include <sensors/proximity.h>
 #include <sensors/imu.h>
-#include <sensors/VL53L0X/VL53L0X.h> //ToF
+#include <sensors/VL53L0X/VL53L0X.h>
 #include <spi_comm.h>
 
 #include <climb.h>
@@ -34,34 +34,21 @@ static void serial_start(void)
 }
 
 int main(void){
-	//ChibiOS initialization
-	halInit();
+	halInit();	//ChibiOS initialization
 	chSysInit();
 	mpu_init();
 
-	//Serial communication initialization
-	serial_start();
-	usb_start(); //is this necessary ?
+	serial_start();	//Serial communication initialization
+	usb_start();	//USB communication initialization
 
-	//Motors initialization
-	motors_init();
+	motors_init();	//Motors initialization
+	messagebus_init(&bus, &bus_lock, &bus_condvar);	//Inter Process Communication bus initialization
+	imu_start();	//IMU initialization
+	VL53L0X_start();	//ToF sensor initialization
+	spi_comm_start();	//Comm for RGB LEDs initialization
 
-	//Inter Process Communication bus initialization
-	messagebus_init(&bus, &bus_lock, &bus_condvar);
+	set_path_start();	//Start the SetPath thread
 
-	//IMU initialization
-	imu_start();
-
-	//ToF sensor initialization
-	VL53L0X_start();
-
-	//Comm for RGB LEDs initialization
-	spi_comm_start(); //Used to set RGB leds
-
-	//Start the SetPath thread
-	set_path_start();
-
-    //Infinite loop
     while (1) {
 
     }

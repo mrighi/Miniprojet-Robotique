@@ -5,7 +5,7 @@
 #include <leds_handler.h>
 
 void toggle_calibration_leds(void){
-	static bool leds_state = 1; //Turn on leds on first cycle
+	static bool leds_state = 1; //Leds are turned on on first cycle
 	if(leds_state)
 		clear_leds();
 	else{
@@ -33,7 +33,7 @@ void set_movement_leds(int8_t rotation){
 }
 
 void toggle_topreached_leds(void){
-	static int counter = TOPREACHED_COUNTER_MAX; //Turn on leds on first cycle
+	static int counter = TOPREACHED_COUNTER_MAX; //Leds are turned on on first cycle
 	if(counter >= TOPREACHED_COUNTER_MAX){
 		counter = 0;
 		toggle_rgb_led(LED2, GREEN_LED, INTENSITY_MAX);

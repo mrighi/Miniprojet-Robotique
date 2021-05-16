@@ -3,7 +3,7 @@
 #include <math.h>
 
 #include <motors.h>
-#include <sensors/VL53L0X/VL53L0X.h> //ToF
+#include <sensors/VL53L0X/VL53L0X.h>
 #include <IMU_handler.h>
 #include <leds_handler.h>
 #include <climb.h>
@@ -13,8 +13,6 @@ static BSEMAPHORE_DECL(sendToComputer_sem, TRUE);
 int8_t imu_bearing(int16_t acc_x, int16_t acc_y){
 	if(fabs(acc_x) <= IMU_GO_STRAIGHT_THRESHOLD && acc_y > 0)
 			return 0;
-	//IS THIS CONDITION REDUNDANT ???
-	//if(acc_y < IMU_TOP_MAX_Y && acc_z > IMU_TOP_MAX_Z){
 	//Limit case to avoid division by zero + if the robot is more than 90 degrees off
 	if(acc_y < IMU_TOP_MAX_Y && acc_x >= 0)
 			return -BEARING_MAX;
@@ -29,7 +27,7 @@ int8_t prox_bearing(uint16_t dist_mm){
 	static bool direction = 0; //Direction of the rotation : 0=left, 1=right
 
 	if(dist_mm <= PROX_DIST_MIN) //Obstacle detected
-		bearing_prox = (1-2*direction)*PROX_CORRECTION; //Constant correction
+		bearing_prox = (1-2*direction)*PROX_CORRECTION;
 	else if(bearing_prox != 0){
 		if(fabs(bearing_prox) - PROX_DEC_COEFF > 0) //Next decrement does not change sign
 			bearing_prox = (1-2*direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
@@ -42,11 +40,10 @@ int8_t prox_bearing(uint16_t dist_mm){
 }
 
 void move (int8_t bearing){
-	//static int8_t bearing_prev = 0; //Used for D term
-	static int16_t bearingI = 0; //Used for I term
+	static int16_t bearingI = 0;
 	if(fabs(bearingI) < BEARING_I_MAX ||
 			(bearingI >= BEARING_I_MAX && bearing < 0) ||
-			(bearingI <= -BEARING_I_MAX && bearing > 0)) //Prevent saturation
+			(bearingI <= -BEARING_I_MAX && bearing > 0)) //Prevent saturation of I term
 		bearingI += bearing ;
 
 	int16_t delta_speed = Kp*bearing + (Kp*bearingI)/Ti;
@@ -58,7 +55,7 @@ void move (int8_t bearing){
 	//Led handling done here because real correction value delta_speed does not necessarily correspond to bearing
 }
 
-static THD_WORKING_AREA(waSetPath, 512);
+static THD_WORKING_AREA(waSetPath, 256);
 
 static THD_FUNCTION(SetPath, arg) {
     chRegSetThreadName(__FUNCTION__);
@@ -90,14 +87,13 @@ static THD_FUNCTION(SetPath, arg) {
     		climby_leds_handler(TOP_REACHED,0);
     	}
          else{
-        	 //Bearings should be [-100, 100]
         	 bearing_prox = prox_bearing(ToF_dist_mm);
         	 bearing_imu = imu_bearing(acc[X_AXIS], acc[Y_AXIS]);
-        	 bearing_res = ((PROX_CORRECTION-fabs(bearing_prox))*bearing_imu)/PROX_CORRECTION + bearing_prox;
+        	 bearing_res = ((PROX_CORRECTION-fabs(bearing_prox))*bearing_imu)/PROX_CORRECTION + bearing_prox; //Dynamic weighting
         	 move(bearing_res);
          }
 
-    	chThdSleepUntilWindowed(time, time + MS2ST(10)); //100 Hz
+    	chThdSleepUntilWindowed(time, time + MS2ST(10));
     }
 }
 

@@ -9,10 +9,10 @@ extern "C" {
 #define Y_AXIS						1
 #define Z_AXIS						2
 
-#define IMU_OFFSET_MAX				-15000
+#define IMU_OFFSET_MAX				-15000		//Expected z-direction offset range
 #define IMU_OFFSET_MIN				-17000
 
-#define IMU_BUFFER_SIZE_XY			5
+#define IMU_BUFFER_SIZE_XY			5			//Number of acceleration samples taken
 #define IMU_BUFFER_SIZE_Z			50
 
 /**

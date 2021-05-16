@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define INTENSITY_MAX			255
+#define INTENSITY_MAX			255		//RGB LEDS
 #define INTENSITY_MED			150
 
 #define CALIBRATION_COUNTER_MAX	1

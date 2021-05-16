@@ -5,29 +5,30 @@
 extern "C" {
 #endif
 
-#define ATAN_TO_BEARING				64	//approx 100*2/pi
-#define BEARING_MAX					100
-#define BEARING_I_MAX				300
-#define SPEED_BASE					500		//Base movement speed
-#define IMU_GO_STRAIGHT_THRESHOLD	200
+#define ATAN_TO_BEARING				64		//approx 100*2/pi
 
-#define IMU_TOP_MAX_X				400
+#define BEARING_MAX					100
+#define BEARING_I_MAX				300		//Empirical
+
+#define SPEED_BASE					500		//Base movement speed
+
+#define IMU_GO_STRAIGHT_THRESHOLD	200		//Empirical
+
+#define IMU_TOP_MAX_X				400		//Threshold values for top reached detection (empirical)
 #define IMU_TOP_MIN_X				-400
 #define IMU_TOP_MAX_Y				400
 #define IMU_TOP_MIN_Y				-900
 #define IMU_TOP_MAX_Z				400
 #define IMU_TOP_MIN_Z				-400
 
-#define PROX_DIST_MIN				120
+#define PROX_DIST_MIN				120		//Threshold obstacle detection distance (empirical)
 
-#define PROX_DEC_COEFF				1
+#define PROX_DEC_COEFF				1		//Empirical
 
-#define STOP_DECREMENTING_THRESHOLD	10
-
-#define PROX_CORRECTION				65
+#define PROX_CORRECTION				65		//Empirical
 
 #define Kp							5
-#define Ti							100 //NEVER SET TO ZERO !!!
+#define Ti							100 	//NEVER SET TO ZERO !!!
 
 /**
 * Convention used throughout for bearings: trigonometric direction
