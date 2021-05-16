@@ -66,18 +66,16 @@ int8_t prox_bearing(uint16_t dist_mm){
 	static int8_t bearing_prox = 0; //Static because decremented once the obstacle is no longer in line of sight
 	static bool direction = 0; //Direction of the rotation : 0=left, 1=right
 
-	if(dist_mm <= PROX_DIST_MIN){ //Obstacle detected
+	if(dist_mm <= PROX_DIST_MIN) //Obstacle detected
 		bearing_prox = (1-2*direction)*PROX_CORRECTION; //Constant correction
 		//bearing_prox = (1-2*direction)*(BEARING_MAX-(dist_mm*BEARING_MAX)/PROX_DIST_MIN); //Linear correction
-		return bearing_prox;
-	}
-	if(bearing_prox > PROX_DEC_COEFF){ //Next decrement does not change sign
-		bearing_prox = (1-2*!direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
-		return bearing_prox;
-	}
-	if(bearing_prox <= PROX_DEC_COEFF && bearing_prox > 0){
-		bearing_prox = 0;
-		direction = !direction;
+	else if(bearing_prox != 0){
+		if(fabs(bearing_prox) - PROX_DEC_COEFF > 0) //Next decrement does not change sign
+			bearing_prox = (1-2*direction)*(fabs(bearing_prox)-PROX_DEC_COEFF); //Decrement bearing_prox
+		else{
+			bearing_prox = 0;
+			direction = !direction;
+		}
 	}
 	return bearing_prox;
 }

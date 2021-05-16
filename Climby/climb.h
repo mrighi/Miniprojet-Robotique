@@ -49,12 +49,12 @@ extern "C" {
 
 #define PROX_DIST_MIN				120
 
-#define PROX_DEC_COEFF				1.5
+#define PROX_DEC_COEFF				1
 //#define PROX_DEC_COEFF1				2
 //#define PROX_DEC_COEFF2				41
 #define STOP_DECREMENTING_THRESHOLD	10
 
-#define PROX_CORRECTION				50
+#define PROX_CORRECTION				65
 
 #define Kp							5
 //#define	Td							0	//NEVER SET TO ZERO !!!
