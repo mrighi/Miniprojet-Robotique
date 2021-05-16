@@ -27,14 +27,13 @@ void toggle_calibration_leds(void);
 /**
 * @brief	Light the left and/or right front rgb leds blue, depending on the sign of bearing
 *
-* @param	Bearing value (can be any int)
+* @param	Bearing value (can be any int8)
 */
 void set_movement_leds(int8_t rotation);
 
 /**
 * @brief	Toggle the four rgb leds to green
 * 			At the first call lets are set, at the next they are cleared, etc.
-*
 */
 void toggle_topreached_leds(void);
 
