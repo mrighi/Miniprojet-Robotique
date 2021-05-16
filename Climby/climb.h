@@ -5,36 +5,11 @@
 extern "C" {
 #endif
 
-//#include <math.h>
-
-//#define X_AXIS						0
-//#define Y_AXIS						1
-//#define Z_AXIS						2
-
-//#define g							9.81
-
 #define ATAN_TO_BEARING				64	//approx 100*2/pi
-
 #define BEARING_MAX					100
-
 #define BEARING_I_MAX				300
-
 #define SPEED_BASE					500		//Base movement speed
-//#define BEARING_TO_SPEED			0.003*1100 	//Empirical
-
-//#define DELTA_SPEED_MIN				-800
-//#define DELTA_SPEED_MAX 			800 //Motor saturates before +800
-
-//#define IMU_BUFFER_SIZE_XY			5
-//#define IMU_BUFFER_SIZE_Z			50
-
 #define IMU_GO_STRAIGHT_THRESHOLD	200
-
-//#define IMU_EPSILON					0.01	//Determined empirically
-//#define IMU_RESOLUTION				32000
-//#define IMU_MAX						2*g
-//#define IMU_OFFSET_MAX				-17000
-//#define IMU_OFFSET_MIN				-15000
 
 #define IMU_TOP_MAX_X				400
 #define IMU_TOP_MIN_X				-400
@@ -43,21 +18,15 @@ extern "C" {
 #define IMU_TOP_MAX_Z				400
 #define IMU_TOP_MIN_Z				-400
 
-//#define PROX_OFFSET_MAX				500
-//#define PROX_MAX					1000
-//#define PROX_THRESHOLD				60 		//Determined empirically
-
 #define PROX_DIST_MIN				120
 
 #define PROX_DEC_COEFF				1
-//#define PROX_DEC_COEFF1				2
-//#define PROX_DEC_COEFF2				41
+
 #define STOP_DECREMENTING_THRESHOLD	10
 
 #define PROX_CORRECTION				65
 
 #define Kp							5
-//#define	Td							0	//NEVER SET TO ZERO !!!
 #define Ti							100 //NEVER SET TO ZERO !!!
 
 /**

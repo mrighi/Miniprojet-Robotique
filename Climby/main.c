@@ -14,9 +14,6 @@
 #include <sensors/imu.h>
 #include <sensors/VL53L0X/VL53L0X.h> //ToF
 #include <spi_comm.h>
-//#include <camera/po8030.h>
-//#include <i2c_bus.h>
-//#include <chprintf.h>
 
 #include <climb.h>
 
@@ -49,24 +46,16 @@ int main(void){
 	//Motors initialization
 	motors_init();
 
-	//From TP4:
-	//timer11_start();
-
 	//Inter Process Communication bus initialization
 	messagebus_init(&bus, &bus_lock, &bus_condvar);
-
-	//I2C bus initialization
-	//i2c_start(); //Called in IMU
 
 	//IMU initialization
 	imu_start();
 
-	//IR sensors initialization
-	//proximity_start();
-
 	//ToF sensor initialization
 	VL53L0X_start();
 
+	//Comm for RGB LEDs initialization
 	spi_comm_start(); //Used to set RGB leds
 
 	//Start the SetPath thread
@@ -74,7 +63,7 @@ int main(void){
 
     //Infinite loop
     while (1) {
-    	//put in ChThreadSleep
+
     }
 
 	return 0;
